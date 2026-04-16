@@ -1,6 +1,6 @@
 version: "3.8"
 
-name: bod-server
+name: saasbod-server
 
 services:
   api:
@@ -41,15 +41,15 @@ services:
         SEED_OWNER_EMAIL: ${SEED_OWNER_EMAIL}
         SEED_OWNER_PASSWORD: ${SEED_OWNER_PASSWORD}
         SEED_COMPANY_NAME: ${SEED_COMPANY_NAME}
-    container_name: bod-server
+    container_name: saasbod-server
     ports:
-      - "6610:6610"
+      - "6620:6620"
     env_file:
       - .env
     restart: unless-stopped
     networks:
-      - bod-network
+      - saasbod-network
 
 networks:
-  bod-network:
+  saasbod-network:
     driver: bridge

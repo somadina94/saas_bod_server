@@ -27,8 +27,8 @@ RUN npm install --only=production --legacy-peer-deps
 
 # Expose port
 ENV NODE_ENV=production
-ENV PORT=6610
-EXPOSE 6610
+ENV PORT=6620
+EXPOSE 6620
 
 # Create logs directory
 RUN mkdir -p /app/logs
