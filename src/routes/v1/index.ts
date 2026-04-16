@@ -1,0 +1,46 @@
+import { Router } from "express";
+import authRoutes from "./auth.routes.js";
+import usersRoutes from "./users.routes.js";
+import companyRoutes from "./company.routes.js";
+import customersRoutes from "./customers.routes.js";
+import suppliersRoutes from "./suppliers.routes.js";
+import productsRoutes from "./products.routes.js";
+import servicesRoutes from "./services.routes.js";
+import inventoryRoutes from "./inventory.routes.js";
+import quotationsRoutes from "./quotations.routes.js";
+import invoicesRoutes from "./invoices.routes.js";
+import paymentsRoutes from "./payments.routes.js";
+import salesRoutes from "./sales.routes.js";
+import purchaseOrdersRoutes from "./purchaseOrders.routes.js";
+import expensesRoutes from "./expenses.routes.js";
+import notificationsRoutes from "./notifications.routes.js";
+import dashboardRoutes from "./dashboard.routes.js";
+import uploadsRoutes from "./uploads.routes.js";
+import systemRoutes from "./system.routes.js";
+import auditRoutes from "./audit.routes.js";
+import publicRoutes from "./public.routes.js";
+
+const r = Router();
+
+r.use("/auth", authRoutes);
+r.use("/users", usersRoutes);
+r.use("/company", companyRoutes);
+r.use("/customers", customersRoutes);
+r.use("/suppliers", suppliersRoutes);
+r.use("/products", productsRoutes);
+r.use("/services", servicesRoutes);
+r.use("/inventory", inventoryRoutes);
+r.use("/quotations", quotationsRoutes);
+r.use("/invoices", invoicesRoutes);
+r.use("/payments", paymentsRoutes);
+r.use("/sales", salesRoutes);
+r.use("/purchase-orders", purchaseOrdersRoutes);
+r.use("/expenses", expensesRoutes);
+r.use("/notifications", notificationsRoutes);
+r.use("/dashboard", dashboardRoutes);
+r.use("/uploads", uploadsRoutes);
+r.use("/system", systemRoutes);
+r.use("/audit-logs", auditRoutes);
+r.use("/public", publicRoutes);
+
+export default r;

@@ -1,0 +1,11 @@
+extends _layout
+
+block content
+  p Hi #{firstName},
+  p You have been invited to join #[strong= companyName] on the Business Operations Dashboard.
+  p Your role: #[strong= roleLabel].
+  p
+    a(href=invitationUrl style="display: inline-block; padding: 10px 18px; background: #171717; color: #fff; text-decoration: none; border-radius: 6px;") Accept invitation
+  p(style="font-size: 14px; color: #525252;") Or copy this link into your browser:
+  p(style="word-break: break-all; font-size: 13px;")= invitationUrl
+  p(style="font-size: 13px; color: #737373;") This link expires in 7 days.

@@ -1,0 +1,32 @@
+export type AuditEntityType =
+  | "auth"
+  | "user"
+  | "company"
+  | "customer"
+  | "supplier"
+  | "product"
+  | "service"
+  | "inventory"
+  | "quotation"
+  | "invoice"
+  | "payment"
+  | "sale"
+  | "purchase_order"
+  | "expense"
+  | "notification"
+  | "system";
+
+export type AuditAction =
+  | "create"
+  | "update"
+  | "delete"
+  | "login"
+  | "logout"
+  | "password_reset"
+  | "approve"
+  | "reject"
+  | "send"
+  | "receive"
+  | "adjust"
+  | "convert"
+  | "other";

@@ -1,0 +1,11 @@
+extends _layout
+
+block content
+  p Hi #{firstName},
+  if status === 'approved'
+    p Your expense #[strong= title] (#{currency} #{formattedAmount}) has been #[strong approved].
+  else
+    p Your expense #[strong= title] (#{currency} #{formattedAmount}) has been #[strong rejected].
+    if reason
+      p Reason: #{reason}
+  p(style="font-size: 13px; color: #737373;") Submitted: #{submittedAtLabel}

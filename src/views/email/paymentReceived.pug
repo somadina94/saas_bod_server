@@ -1,0 +1,15 @@
+extends _layout
+
+block content
+  p Hi #{customerName},
+  if paymentNumber
+    p Payment reference: #[strong= paymentNumber]
+  p We received #[strong #{currency} #{formattedAmount}] allocated to invoice(s) #[strong= invoiceNumber].
+  if reference
+    p Reference: #{reference}
+  if receiptNumber
+    p Receipt: #{receiptNumber}
+  p Thank you for your payment.
+  if viewUrl
+    p
+      a(href=viewUrl style="display: inline-block; padding: 10px 18px; background: #171717; color: #fff; text-decoration: none; border-radius: 6px;") View details
