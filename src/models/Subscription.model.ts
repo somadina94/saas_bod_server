@@ -59,13 +59,14 @@ const subscriptionSchema = new Schema<ISubscription>(
 
 subscriptionSchema.set("toJSON", {
   virtuals: true,
-  transform: (_doc, ret: Record<string, unknown>) => {
-    if (ret._id) {
-      ret.id = String(ret._id);
-      delete ret._id;
+  transform: (_doc, ret) => {
+    const o = ret as unknown as Record<string, unknown>;
+    if (o._id) {
+      o.id = String(o._id);
+      delete o._id;
     }
-    delete ret.__v;
-    return ret;
+    delete o.__v;
+    return o;
   },
 });
 

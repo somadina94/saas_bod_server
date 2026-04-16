@@ -13,7 +13,7 @@ export const getCompany = catchAsync(async (req, res) => {
   );
   if (!company) throw new AppError("Company not found", 404);
 
-  const raw = company.toJSON() as Record<string, unknown>;
+  const raw = company.toJSON() as unknown as Record<string, unknown>;
   raw.paystackSecretConfigured = Boolean(company.paystackSecretKeyEncrypted);
   delete raw.paystackSecretKeyEncrypted;
 
@@ -96,7 +96,7 @@ export const updateCompany = catchAsync(async (req, res) => {
     entityId: String(company._id),
   });
 
-  const raw = company.toJSON() as Record<string, unknown>;
+  const raw = company.toJSON() as unknown as Record<string, unknown>;
   raw.paystackSecretConfigured = Boolean(company.paystackSecretKeyEncrypted);
   delete raw.paystackSecretKeyEncrypted;
 
