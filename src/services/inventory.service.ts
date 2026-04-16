@@ -7,6 +7,7 @@ import AppError from "../utils/appError.js";
 import { recordAudit } from "./auditLog.service.js";
 
 export interface StockChangeInput {
+  companyId: mongoose.Types.ObjectId;
   productId: mongoose.Types.ObjectId;
   quantityDelta: number;
   type: InventoryMovementType;
@@ -32,10 +33,13 @@ export const applyStockChange = async (
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const product = await Product.findById(input.productId).session(session);
+    const product = await Product.findOne({
+      _id: input.productId,
+      companyId: input.companyId,
+    }).session(session);
     if (!product) throw new AppError("Product not found", 404);
 
-    const company = await Company.findOne().session(session);
+    const company = await Company.findById(input.companyId).session(session);
     const allowNegative = company?.operationalSettings.allowNegativeStock ?? false;
 
     const newStock = product.stockOnHand + input.quantityDelta;
@@ -52,6 +56,7 @@ export const applyStockChange = async (
     await InventoryMovement.create(
       [
         {
+          companyId: input.companyId,
           productId: input.productId,
           type: input.type,
           quantity: input.quantityDelta,

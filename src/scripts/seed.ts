@@ -1,13 +1,10 @@
-import dotenv from "dotenv";
-import path from "path";
-
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+import "../config/loadEnv.js";
 
 import mongoose from "mongoose";
 import { env } from "../config/env.js";
 import User from "../models/User.model.js";
 import Company from "../models/Company.model.js";
-import { registerBootstrap } from "../services/auth.service.js";
+import { registerCompany } from "../services/auth.service.js";
 
 const run = async () => {
   await mongoose.connect(env.databaseUrl());
@@ -24,7 +21,7 @@ const run = async () => {
   const password = process.env.SEED_OWNER_PASSWORD ?? "ChangeMe123!";
   const companyName = process.env.SEED_COMPANY_NAME ?? "Demo Company";
 
-  await registerBootstrap({
+  await registerCompany({
     firstName: "Owner",
     lastName: "User",
     email,

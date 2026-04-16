@@ -14,6 +14,8 @@ import type {
 
 export interface ICompany {
   _id: mongoose.Types.ObjectId;
+  /** URL-safe unique slug for callbacks and documentation. */
+  slug: string;
   name: string;
   legalName?: string;
   registrationNumber?: string;
@@ -36,6 +38,12 @@ export interface ICompany {
   saleNumberSettings?: SaleNumberSettings;
   notificationSettings: NotificationSettings;
   operationalSettings: OperationalSettings;
+  /** Tenant Paystack — customer invoice payments (never log secret). */
+  paystackPublicKey?: string;
+  paystackSecretKeyEncrypted?: string;
+  paystackWebhookConfiguredAt?: Date;
+  /** Admin bypass for subscription enforcement (e.g. support). */
+  subscriptionBypassUntil?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -143,6 +151,15 @@ const operationalSettingsSchema = new Schema<OperationalSettings>(
 
 const companySchema = new Schema<ICompany>(
   {
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      minlength: 3,
+      maxlength: 64,
+    },
     name: { type: String, required: true, trim: true },
     legalName: String,
     registrationNumber: String,
@@ -186,6 +203,10 @@ const companySchema = new Schema<ICompany>(
     },
     notificationSettings: { type: notificationSettingsSchema, required: true },
     operationalSettings: { type: operationalSettingsSchema, required: true },
+    paystackPublicKey: { type: String },
+    paystackSecretKeyEncrypted: { type: String, select: false },
+    paystackWebhookConfiguredAt: { type: Date },
+    subscriptionBypassUntil: { type: Date },
   },
   { timestamps: true },
 );
@@ -198,6 +219,7 @@ companySchema.set("toJSON", {
       delete ret._id;
     }
     delete ret.__v;
+    delete ret.paystackSecretKeyEncrypted;
     return ret;
   },
 });

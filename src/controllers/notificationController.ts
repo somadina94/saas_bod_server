@@ -12,6 +12,7 @@ export const listNotifications = catchAsync(async (req, res) => {
   if (!req.authUserId) throw new AppError("Not authenticated", 401);
   const { page, limit, skip } = parsePagination(req.query as Record<string, unknown>);
   const filter = {
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
     userId: new mongoose.Types.ObjectId(req.authUserId),
   };
 
@@ -27,6 +28,7 @@ export const markRead = catchAsync(async (req, res) => {
   await Notification.updateOne(
     {
       _id: req.params.id,
+      companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
       userId: new mongoose.Types.ObjectId(req.authUserId),
     },
     { $set: { readAt: new Date() } },
@@ -37,7 +39,11 @@ export const markRead = catchAsync(async (req, res) => {
 export const markAllRead = catchAsync(async (req, res) => {
   if (!req.authUserId) throw new AppError("Not authenticated", 401);
   await Notification.updateMany(
-    { userId: new mongoose.Types.ObjectId(req.authUserId), readAt: { $exists: false } },
+    {
+      companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
+      userId: new mongoose.Types.ObjectId(req.authUserId),
+      readAt: { $exists: false },
+    },
     { $set: { readAt: new Date() } },
   );
   sendSuccess(res, { message: "All read" });

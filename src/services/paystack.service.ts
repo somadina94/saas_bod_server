@@ -4,20 +4,38 @@ import AppError from "../utils/appError.js";
 
 const PAYSTACK_BASE = "https://api.paystack.co";
 
-export const verifyWebhookSignature = (
+/** Platform Paystack — subscription billing only (keys from `.env`). */
+export const platformPaystack = {
+  secretKey: (): string => env.paystackSecretKey(),
+};
+
+/** Verify Paystack webhook HMAC for a given secret (platform or tenant). */
+export const verifyWebhookSignatureWithSecret = (
   rawBody: string | Buffer,
   signature: string | undefined,
+  secretKey: string,
 ): boolean => {
-  const secret = env.paystackSecretKey();
-  if (!secret || !signature) return false;
+  if (!secretKey || !signature) return false;
   const hash = crypto
-    .createHmac("sha512", secret)
+    .createHmac("sha512", secretKey)
     .update(rawBody)
     .digest("hex");
   return hash === signature;
 };
 
+/** @deprecated Use verifyWebhookSignatureWithSecret + tenant secret */
+export const verifyWebhookSignature = (
+  rawBody: string | Buffer,
+  signature: string | undefined,
+): boolean =>
+  verifyWebhookSignatureWithSecret(
+    rawBody,
+    signature,
+    platformPaystack.secretKey(),
+  );
+
 export const initializeTransaction = async (params: {
+  secretKey: string;
   email: string;
   amount: number;
   currency?: string;
@@ -25,8 +43,7 @@ export const initializeTransaction = async (params: {
   callbackUrl?: string;
   metadata?: Record<string, unknown>;
 }) => {
-  const secret = env.paystackSecretKey();
-  if (!secret) throw new AppError("Paystack is not configured", 500);
+  if (!params.secretKey) throw new AppError("Paystack is not configured", 500);
 
   const body = {
     email: params.email,
@@ -40,7 +57,7 @@ export const initializeTransaction = async (params: {
   const res = await fetch(`${PAYSTACK_BASE}/transaction/initialize`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${secret}`,
+      Authorization: `Bearer ${params.secretKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -63,14 +80,30 @@ export const initializeTransaction = async (params: {
   };
 };
 
-export const verifyTransaction = async (reference: string) => {
-  const secret = env.paystackSecretKey();
-  if (!secret) throw new AppError("Paystack is not configured", 500);
+/** Platform subscription checkout (uses env secret only). */
+export const platformInitializeTransaction = async (params: {
+  email: string;
+  amount: number;
+  currency?: string;
+  reference: string;
+  callbackUrl?: string;
+  metadata?: Record<string, unknown>;
+}) => {
+  const secret = platformPaystack.secretKey();
+  if (!secret) throw new AppError("Platform Paystack is not configured", 500);
+  return initializeTransaction({ secretKey: secret, ...params });
+};
+
+export const verifyTransaction = async (
+  reference: string,
+  secretKey: string,
+) => {
+  if (!secretKey) throw new AppError("Paystack is not configured", 500);
 
   const res = await fetch(
     `${PAYSTACK_BASE}/transaction/verify/${encodeURIComponent(reference)}`,
     {
-      headers: { Authorization: `Bearer ${secret}` },
+      headers: { Authorization: `Bearer ${secretKey}` },
     },
   );
 
@@ -97,4 +130,23 @@ export const verifyTransaction = async (reference: string) => {
     reference: json.data.reference,
     metadata: json.data.metadata,
   };
+};
+
+export const platformVerifyTransaction = async (reference: string) => {
+  const secret = platformPaystack.secretKey();
+  if (!secret) throw new AppError("Platform Paystack is not configured", 500);
+  return verifyTransaction(reference, secret);
+};
+
+/** Lightweight API call to validate tenant secret (balance endpoint). */
+export const validateSecretKey = async (secretKey: string): Promise<boolean> => {
+  try {
+    const res = await fetch(`${PAYSTACK_BASE}/balance`, {
+      headers: { Authorization: `Bearer ${secretKey}` },
+    });
+    const json = (await res.json()) as { status?: boolean };
+    return json.status === true;
+  } catch {
+    return false;
+  }
 };

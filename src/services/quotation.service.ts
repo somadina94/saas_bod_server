@@ -37,6 +37,7 @@ export const recalcQuotationLines = (lines: IQuotationLine[]) => {
 };
 
 export const createQuotation = async (params: {
+  companyId: mongoose.Types.ObjectId;
   customerId: mongoose.Types.ObjectId;
   items: IQuotationLine[];
   validUntil?: Date;
@@ -47,9 +48,13 @@ export const createQuotation = async (params: {
 }) => {
   const { items, subtotal, taxTotal, total, discountTotal } =
     recalcQuotationLines(params.items);
-  const quotationNumber = await nextNumberedDocument("quotationSettings");
+  const quotationNumber = await nextNumberedDocument(
+    params.companyId,
+    "quotationSettings",
+  );
 
   const q = await Quotation.create({
+    companyId: params.companyId,
     quotationNumber,
     customerId: params.customerId,
     status: "draft",
@@ -78,10 +83,11 @@ export const createQuotation = async (params: {
 
 export const convertQuotationToInvoice = async (
   quotationId: string,
+  companyId: string,
   dueDays: number,
   actorId?: string,
 ) => {
-  const q = await Quotation.findById(quotationId);
+  const q = await Quotation.findOne({ _id: quotationId, companyId });
   if (!q) throw new AppError("Quotation not found", 404);
   if (q.status === "converted") {
     throw new AppError("Quotation already converted", 400);
@@ -102,6 +108,7 @@ export const convertQuotationToInvoice = async (
   const { items } = recalcInvoiceLines(lines);
 
   const inv = await createInvoice({
+    companyId: q.companyId,
     customerId: q.customerId,
     quotationId: q._id,
     items,

@@ -3,6 +3,7 @@ import type { InventoryMovementType } from "../types/domain.js";
 
 export interface IInventoryMovement {
   _id: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   productId: mongoose.Types.ObjectId;
   type: InventoryMovementType;
   quantity: number;
@@ -21,6 +22,12 @@ export interface IInventoryMovement {
 
 const inventoryMovementSchema = new Schema<IInventoryMovement>(
   {
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      index: true,
+    },
     productId: {
       type: Schema.Types.ObjectId,
       ref: "Product",
@@ -54,6 +61,7 @@ const inventoryMovementSchema = new Schema<IInventoryMovement>(
   { timestamps: true },
 );
 
+inventoryMovementSchema.index({ companyId: 1, productId: 1, createdAt: -1 });
 inventoryMovementSchema.index({ productId: 1, createdAt: -1 });
 inventoryMovementSchema.index({ referenceType: 1, referenceId: 1 });
 

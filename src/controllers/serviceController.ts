@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import catchAsync from "../utils/catchAsync.js";
 import { paginated, sendSuccess } from "../utils/apiResponse.js";
 import {
@@ -15,7 +16,10 @@ export const listServices = catchAsync(async (req, res) => {
     "name",
     "code",
   ]);
-  const filter: Record<string, unknown> = { deletedAt: { $exists: false } };
+  const filter: Record<string, unknown> = {
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
+    deletedAt: { $exists: false },
+  };
   if (req.query.status) filter.status = req.query.status;
   if (search) Object.assign(filter, search);
 
@@ -27,7 +31,10 @@ export const listServices = catchAsync(async (req, res) => {
 });
 
 export const createService = catchAsync(async (req, res) => {
-  const s = await Service.create(req.body);
+  const s = await Service.create({
+    ...req.body,
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
+  });
   await recordAudit({
     actorId: req.authUserId,
     action: "create",
@@ -40,6 +47,7 @@ export const createService = catchAsync(async (req, res) => {
 export const getService = catchAsync(async (req, res) => {
   const s = await Service.findOne({
     _id: req.params.id,
+    companyId: req.authCompanyId,
     deletedAt: { $exists: false },
   });
   if (!s) throw new AppError("Service not found", 404);
@@ -49,6 +57,7 @@ export const getService = catchAsync(async (req, res) => {
 export const updateService = catchAsync(async (req, res) => {
   const s = await Service.findOne({
     _id: req.params.id,
+    companyId: req.authCompanyId,
     deletedAt: { $exists: false },
   });
   if (!s) throw new AppError("Service not found", 404);
@@ -64,7 +73,10 @@ export const updateService = catchAsync(async (req, res) => {
 });
 
 export const archiveService = catchAsync(async (req, res) => {
-  const s = await Service.findById(req.params.id);
+  const s = await Service.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!s) throw new AppError("Service not found", 404);
   s.status = "archived";
   s.deletedAt = new Date();

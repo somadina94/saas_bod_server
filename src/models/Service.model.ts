@@ -4,6 +4,7 @@ export type ServiceStatus = "active" | "inactive" | "archived";
 
 export interface IService {
   _id: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   code?: string;
   name: string;
   description?: string;
@@ -20,6 +21,12 @@ export interface IService {
 
 const serviceSchema = new Schema<IService>(
   {
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      index: true,
+    },
     code: { type: String, trim: true, sparse: true },
     name: { type: String, required: true, trim: true },
     description: String,
@@ -38,9 +45,17 @@ const serviceSchema = new Schema<IService>(
   { timestamps: true },
 );
 
-serviceSchema.index({ name: "text", code: "text" });
+serviceSchema.index({ companyId: 1, name: "text", code: "text" });
+serviceSchema.index({ companyId: 1, status: 1 });
 serviceSchema.index({ status: 1 });
 serviceSchema.index({ deletedAt: 1 });
+serviceSchema.index(
+  { companyId: 1, code: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { code: { $exists: true, $type: "string", $ne: "" } },
+  },
+);
 
 serviceSchema.set("toJSON", {
   virtuals: true,

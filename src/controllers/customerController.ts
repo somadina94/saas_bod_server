@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import catchAsync from "../utils/catchAsync.js";
 import { paginated, sendSuccess } from "../utils/apiResponse.js";
 import {
@@ -16,7 +17,10 @@ export const listCustomers = catchAsync(async (req, res) => {
     "email",
     "code",
   ]);
-  const filter: Record<string, unknown> = { deletedAt: { $exists: false } };
+  const filter: Record<string, unknown> = {
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
+    deletedAt: { $exists: false },
+  };
   if (req.query.status) filter.status = req.query.status;
   if (search) Object.assign(filter, search);
 
@@ -29,6 +33,7 @@ export const listCustomers = catchAsync(async (req, res) => {
 
 export const createCustomer = catchAsync(async (req, res) => {
   const c = await Customer.create({
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
     name: req.body.name,
     code: req.body.code,
     email: req.body.email,
@@ -53,6 +58,7 @@ export const createCustomer = catchAsync(async (req, res) => {
 export const getCustomer = catchAsync(async (req, res) => {
   const c = await Customer.findOne({
     _id: req.params.id,
+    companyId: req.authCompanyId,
     deletedAt: { $exists: false },
   });
   if (!c) throw new AppError("Customer not found", 404);
@@ -62,6 +68,7 @@ export const getCustomer = catchAsync(async (req, res) => {
 export const updateCustomer = catchAsync(async (req, res) => {
   const c = await Customer.findOne({
     _id: req.params.id,
+    companyId: req.authCompanyId,
     deletedAt: { $exists: false },
   });
   if (!c) throw new AppError("Customer not found", 404);
@@ -92,7 +99,10 @@ export const updateCustomer = catchAsync(async (req, res) => {
 });
 
 export const archiveCustomer = catchAsync(async (req, res) => {
-  const c = await Customer.findById(req.params.id);
+  const c = await Customer.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!c) throw new AppError("Customer not found", 404);
   c.status = "archived";
   c.deletedAt = new Date();

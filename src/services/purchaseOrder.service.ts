@@ -6,12 +6,16 @@ import { recordAudit } from "./auditLog.service.js";
 
 export const receivePurchaseOrder = async (params: {
   poId: string;
+  companyId: string;
   lines?: { lineIndex: number; quantity: number }[];
   actorId?: string;
   ip?: string;
   userAgent?: string;
 }) => {
-  const po = await PurchaseOrder.findById(params.poId);
+  const po = await PurchaseOrder.findOne({
+    _id: params.poId,
+    companyId: params.companyId,
+  });
   if (!po) throw new AppError("Purchase order not found", 404);
   if (po.status === "cancelled") {
     throw new AppError("Cannot receive a cancelled PO", 400);
@@ -35,6 +39,7 @@ export const receivePurchaseOrder = async (params: {
     line.quantityReceived = nextReceived;
 
     await applyStockChange({
+      companyId: po.companyId,
       productId: line.productId,
       quantityDelta: qty,
       type: "purchase_receipt",

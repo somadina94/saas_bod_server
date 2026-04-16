@@ -5,6 +5,7 @@ export type CustomerStatus = "active" | "inactive" | "archived";
 
 export interface ICustomer {
   _id: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   name: string;
   code?: string;
   email?: string;
@@ -33,6 +34,12 @@ const documentRefSchema = new Schema<DocumentRef>(
 
 const customerSchema = new Schema<ICustomer>(
   {
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      index: true,
+    },
     name: { type: String, required: true, trim: true },
     code: { type: String, trim: true, sparse: true },
     email: { type: String, lowercase: true, trim: true },
@@ -53,9 +60,17 @@ const customerSchema = new Schema<ICustomer>(
   { timestamps: true },
 );
 
-customerSchema.index({ name: "text", code: "text", email: "text" });
+customerSchema.index({ companyId: 1, name: "text", code: "text", email: "text" });
+customerSchema.index({ companyId: 1, status: 1 });
 customerSchema.index({ status: 1 });
 customerSchema.index({ deletedAt: 1 });
+customerSchema.index(
+  { companyId: 1, code: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { code: { $exists: true, $type: "string", $ne: "" } },
+  },
+);
 
 customerSchema.set("toJSON", {
   virtuals: true,

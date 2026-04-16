@@ -19,10 +19,12 @@ import uploadsRoutes from "./uploads.routes.js";
 import systemRoutes from "./system.routes.js";
 import auditRoutes from "./audit.routes.js";
 import publicRoutes from "./public.routes.js";
+import billingRoutes from "./billing.routes.js";
 
 const r = Router();
 
 r.use("/auth", authRoutes);
+r.use("/billing", billingRoutes);
 r.use("/users", usersRoutes);
 r.use("/company", companyRoutes);
 r.use("/customers", customersRoutes);

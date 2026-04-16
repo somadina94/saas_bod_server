@@ -13,7 +13,9 @@ import { recordAudit } from "../services/auditLog.service.js";
 
 export const listPurchaseOrders = catchAsync(async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query as Record<string, unknown>);
-  const filter: Record<string, unknown> = {};
+  const filter: Record<string, unknown> = {
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
+  };
   if (req.query.supplierId) {
     filter.supplierId = new mongoose.Types.ObjectId(String(req.query.supplierId));
   }
@@ -27,8 +29,10 @@ export const listPurchaseOrders = catchAsync(async (req, res) => {
 });
 
 export const createPurchaseOrder = catchAsync(async (req, res) => {
-  const poNumber = await nextNumberedDocument("purchaseOrderSettings");
+  const cid = new mongoose.Types.ObjectId(req.authCompanyId!);
+  const poNumber = await nextNumberedDocument(cid, "purchaseOrderSettings");
   const po = await PurchaseOrder.create({
+    companyId: cid,
     poNumber,
     supplierId: new mongoose.Types.ObjectId(req.body.supplierId),
     status: req.body.status ?? "draft",
@@ -55,13 +59,19 @@ export const createPurchaseOrder = catchAsync(async (req, res) => {
 });
 
 export const getPurchaseOrder = catchAsync(async (req, res) => {
-  const po = await PurchaseOrder.findById(req.params.id);
+  const po = await PurchaseOrder.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!po) throw new AppError("Purchase order not found", 404);
   sendSuccess(res, po);
 });
 
 export const updatePurchaseOrder = catchAsync(async (req, res) => {
-  const po = await PurchaseOrder.findById(req.params.id);
+  const po = await PurchaseOrder.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!po) throw new AppError("Purchase order not found", 404);
   Object.assign(po, req.body);
   await po.save();
@@ -75,7 +85,10 @@ export const updatePurchaseOrder = catchAsync(async (req, res) => {
 });
 
 export const approvePurchaseOrder = catchAsync(async (req, res) => {
-  const po = await PurchaseOrder.findById(req.params.id);
+  const po = await PurchaseOrder.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!po) throw new AppError("Purchase order not found", 404);
   po.status = "approved";
   po.approvedBy = req.authUserId
@@ -95,6 +108,7 @@ export const approvePurchaseOrder = catchAsync(async (req, res) => {
 export const receivePurchaseOrder = catchAsync(async (req, res) => {
   const po = await purchaseOrderService.receivePurchaseOrder({
     poId: String(req.params.id),
+    companyId: req.authCompanyId!,
     lines: req.body.lines,
     actorId: req.authUserId,
     ip: req.ip,

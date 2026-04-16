@@ -12,7 +12,17 @@ import {
 import { padDocNumber } from "./company.service.js";
 import { notifyPaymentReceived } from "./emailNotifications.service.js";
 
+export const findCompletedByPaystackReference = async (
+  reference: string,
+) => {
+  return Payment.findOne({
+    paystackReference: reference,
+    status: "completed",
+  });
+};
+
 export const recordPayment = async (params: {
+  companyId: mongoose.Types.ObjectId;
   customerId?: mongoose.Types.ObjectId;
   amount: number;
   currency: string;
@@ -26,10 +36,11 @@ export const recordPayment = async (params: {
   paystackReference?: string;
   actorId?: string;
 }) => {
-  const seq = await nextCounter("payment");
+  const seq = await nextCounter(`payment:${String(params.companyId)}`);
   const paymentNumber = `PMT-${padDocNumber(seq, 6)}`;
 
   const payment = await Payment.create({
+    companyId: params.companyId,
     paymentNumber,
     customerId: params.customerId,
     amount: params.amount,
@@ -97,6 +108,7 @@ export const recordPayment = async (params: {
 };
 
 export const applyPaystackPaymentToInvoice = async (params: {
+  companyId: mongoose.Types.ObjectId;
   invoiceId: mongoose.Types.ObjectId;
   amount: number;
   currency: string;
@@ -106,8 +118,12 @@ export const applyPaystackPaymentToInvoice = async (params: {
 }) => {
   const inv = await Invoice.findById(params.invoiceId);
   if (!inv) throw new AppError("Invoice not found", 404);
+  if (String(inv.companyId) !== String(params.companyId)) {
+    throw new AppError("Invoice not found", 404);
+  }
 
   const payment = await recordPayment({
+    companyId: params.companyId,
     customerId: params.customerId ?? inv.customerId,
     amount: params.amount,
     currency: params.currency,

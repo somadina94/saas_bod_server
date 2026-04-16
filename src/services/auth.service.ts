@@ -1,7 +1,9 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import mongoose from "mongoose";
 import User from "../models/User.model.js";
 import Company from "../models/Company.model.js";
+import Subscription from "../models/Subscription.model.js";
 import type { IUser } from "../models/User.model.js";
 import { defaultPermissionsForRole, mergePermissionOverrides } from "../constants/permissions.js";
 import { env } from "../config/env.js";
@@ -29,7 +31,18 @@ export const comparePassword = async (
   hash: string,
 ): Promise<boolean> => bcrypt.compare(plain, hash);
 
-export const registerBootstrap = async (params: {
+const workspaceSlug = (companyName: string): string => {
+  const base =
+    companyName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "workspace";
+  return `${base}-${crypto.randomBytes(3).toString("hex")}`;
+};
+
+/** Open registration: new company + owner user + trial subscription. */
+export const registerCompany = async (params: {
   firstName: string;
   lastName: string;
   email: string;
@@ -38,19 +51,18 @@ export const registerBootstrap = async (params: {
   industry?: string;
   currency?: string;
 }) => {
-  const userCount = await User.countDocuments();
-  if (userCount > 0) {
-    throw new AppError("Registration is disabled. Users already exist.", 403);
-  }
-
-  const companyCount = await Company.countDocuments();
-  if (companyCount > 0) {
-    throw new AppError("Company already exists. Contact an administrator.", 403);
+  const existing = await User.findOne({ email: params.email.toLowerCase() });
+  if (existing) {
+    throw new AppError("An account with this email already exists", 400);
   }
 
   const passwordHash = await hashPassword(params.password);
   const role: UserRole = "owner";
   const permissions = defaultPermissionsForRole(role);
+
+  const trialDays = env.billingTrialDays();
+  const trialEnd = new Date();
+  trialEnd.setDate(trialEnd.getDate() + trialDays);
 
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -58,6 +70,7 @@ export const registerBootstrap = async (params: {
     const company = await Company.create(
       [
         {
+          slug: workspaceSlug(params.companyName),
           name: params.companyName,
           industry: ((params.industry as IndustryType | undefined) ?? "other") as IndustryType,
           currency: params.currency ?? "NGN",
@@ -93,9 +106,12 @@ export const registerBootstrap = async (params: {
       { session },
     );
 
+    const comp = company[0]!;
+
     const userArr = await User.create(
       [
         {
+          companyId: comp._id,
           firstName: params.firstName,
           lastName: params.lastName,
           email: params.email,
@@ -119,9 +135,22 @@ export const registerBootstrap = async (params: {
       { session },
     );
 
+    await Subscription.create(
+      [
+        {
+          companyId: comp._id,
+          plan: "standard",
+          interval: "monthly",
+          status: "trialing",
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: trialEnd,
+        },
+      ],
+      { session },
+    );
+
     await session.commitTransaction();
     const user = userArr[0]!;
-    const comp = company[0]!;
 
     const tokens = await issueTokens(user);
 
@@ -129,7 +158,7 @@ export const registerBootstrap = async (params: {
       actorId: String(user._id),
       action: "create",
       entityType: "auth",
-      metadata: { event: "bootstrap_register", companyId: String(comp._id) },
+      metadata: { event: "register_company", companyId: String(comp._id) },
     });
 
     return { user: sanitizeUser(user), company: comp, ...tokens };
@@ -149,6 +178,9 @@ export const sanitizeUser = (user: IUser) => {
       : ({ ...(user as object) } as Record<string, unknown>);
   delete obj.passwordHash;
   delete obj.refreshTokenHash;
+  if (user.companyId) {
+    obj.companyId = String(user.companyId);
+  }
   return obj;
 };
 
@@ -156,6 +188,7 @@ export const issueTokens = async (user: IUser) => {
   const jti = randomToken(16);
   const accessToken = signAccessToken({
     sub: String(user._id),
+    companyId: String(user.companyId),
     role: user.role,
     permissions: user.permissions,
   });
@@ -488,6 +521,11 @@ export const createStaffUser = async (params: {
     );
   }
 
+  const inviter = await User.findById(params.invitedBy);
+  if (!inviter?.companyId) {
+    throw new AppError("Inviter workspace is invalid", 500);
+  }
+
   const existing = await User.findOne({ email: params.email.toLowerCase() });
   if (existing) throw new AppError("Email already in use", 400);
 
@@ -504,6 +542,7 @@ export const createStaffUser = async (params: {
   const invitationExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   const user = await User.create({
+    companyId: inviter.companyId,
     firstName: params.firstName,
     lastName: params.lastName,
     email: params.email.toLowerCase(),
@@ -540,6 +579,8 @@ export const createStaffUser = async (params: {
 
   const invitationLink = `${env.frontendUrl}/accept-invite?token=${rawToken}&email=${encodeURIComponent(user.email)}`;
 
+  const inviterCompany = await Company.findById(inviter.companyId);
+
   try {
     await notifyStaffInvitation({
       email: user.email,
@@ -547,6 +588,7 @@ export const createStaffUser = async (params: {
       lastName: user.lastName,
       invitationUrl: invitationLink,
       role: user.role,
+      companyName: inviterCompany?.name ?? env.companyName,
     });
   } catch {
     // Do not leave a dangling invited account when email dispatch fails.

@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 const required = (name: string): string => {
   const v = process.env[name];
   if (v === undefined || v === "") {
@@ -35,9 +37,32 @@ export const env = {
   },
   publicLinkExpiresIn: process.env.PUBLIC_LINK_EXPIRES_IN ?? "14d",
 
+  /** Platform (BOD) Paystack — subscription billing only. */
   paystackSecretKey: () => process.env.PAYSTACK_SECRET_KEY ?? "",
   paystackPublicKey: () => process.env.PAYSTACK_PUBLIC_KEY ?? "",
   paystackWebhookSecret: () => process.env.PAYSTACK_WEBHOOK_SECRET ?? "",
+
+  /**
+   * 32-byte key for AES-256-GCM (tenant Paystack secret at rest).
+   * Prefer 64 hex chars. If unset in development, derives from JWT_SECRET via SHA-256 (not for production).
+   */
+  encryptionKeyBytes: (): Buffer => {
+    const hex = nonEmpty(process.env.ENCRYPTION_KEY);
+    if (hex && /^[0-9a-fA-F]{64}$/.test(hex)) {
+      return Buffer.from(hex, "hex");
+    }
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("ENCRYPTION_KEY (64 hex chars) is required in production");
+    }
+    return crypto.createHash("sha256").update(required("JWT_SECRET")).digest();
+  },
+
+  /** NGN amounts for platform subscription (override via env). */
+  billingPlanMonthlyNgn: () =>
+    Number(process.env.BOD_PLAN_MONTHLY_NGN ?? "15000"),
+  billingPlanYearlyNgn: () =>
+    Number(process.env.BOD_PLAN_YEARLY_NGN ?? "150000"),
+  billingTrialDays: () => Number(process.env.BOD_TRIAL_DAYS ?? "14"),
 
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:3000",
   apiUrl: process.env.API_URL ?? `http://localhost:${process.env.PORT ?? 6610}`,

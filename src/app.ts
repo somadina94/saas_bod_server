@@ -4,7 +4,8 @@ import cors from "cors";
 import globalErrorHandler from "./controllers/errorController.js";
 import AppError from "./utils/appError.js";
 import v1Routes from "./routes/v1/index.js";
-import { paystackWebhook } from "./controllers/paystackWebhookController.js";
+import { platformBillingWebhook } from "./controllers/platformBillingWebhookController.js";
+import { tenantPaystackWebhook } from "./controllers/tenantPaystackWebhookController.js";
 import { securityHeaders } from "./middleware/securityHeaders.js";
 import { requestLogger } from "./middleware/requestLogger.js";
 
@@ -22,9 +23,15 @@ app.use(
 app.use(requestLogger);
 
 app.use(
-  "/api/v1/payments/paystack/webhook",
+  "/api/v1/billing/webhooks/paystack",
   express.raw({ type: "application/json" }),
-  paystackWebhook,
+  platformBillingWebhook,
+);
+
+app.use(
+  "/api/v1/webhooks/paystack/tenant/:companyId",
+  express.raw({ type: "application/json" }),
+  tenantPaystackWebhook,
 );
 
 app.use(express.json({ limit: "10mb" }));

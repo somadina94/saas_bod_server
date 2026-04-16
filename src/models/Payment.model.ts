@@ -8,6 +8,7 @@ export interface IPaymentAllocation {
 
 export interface IPayment {
   _id: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   paymentNumber: string;
   customerId?: mongoose.Types.ObjectId;
   supplierId?: mongoose.Types.ObjectId;
@@ -41,7 +42,13 @@ const allocationSchema = new Schema<IPaymentAllocation>(
 
 const paymentSchema = new Schema<IPayment>(
   {
-    paymentNumber: { type: String, required: true, unique: true },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      index: true,
+    },
+    paymentNumber: { type: String, required: true },
     customerId: { type: Schema.Types.ObjectId, ref: "Customer" },
     supplierId: { type: Schema.Types.ObjectId, ref: "Supplier" },
     amount: { type: Number, required: true, min: 0 },
@@ -64,6 +71,8 @@ const paymentSchema = new Schema<IPayment>(
   { timestamps: true },
 );
 
+paymentSchema.index({ companyId: 1, paymentNumber: 1 }, { unique: true });
+paymentSchema.index({ companyId: 1, customerId: 1, createdAt: -1 });
 paymentSchema.index({ customerId: 1, createdAt: -1 });
 paymentSchema.index({ status: 1 });
 

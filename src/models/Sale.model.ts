@@ -22,6 +22,7 @@ export interface ISaleReturnLine {
 
 export interface ISale {
   _id: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   saleNumber: string;
   status: SaleStatus;
   customerId?: mongoose.Types.ObjectId;
@@ -70,7 +71,13 @@ const returnLineSchema = new Schema<ISaleReturnLine>(
 
 const saleSchema = new Schema<ISale>(
   {
-    saleNumber: { type: String, required: true, unique: true },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      index: true,
+    },
+    saleNumber: { type: String, required: true },
     status: {
       type: String,
       enum: ["draft", "completed", "returned", "cancelled"],
@@ -92,7 +99,10 @@ const saleSchema = new Schema<ISale>(
   { timestamps: true },
 );
 
+saleSchema.index({ companyId: 1, saleNumber: 1 }, { unique: true });
+saleSchema.index({ companyId: 1, customerId: 1, createdAt: -1 });
 saleSchema.index({ customerId: 1, createdAt: -1 });
+saleSchema.index({ companyId: 1, status: 1 });
 saleSchema.index({ status: 1 });
 
 saleSchema.set("toJSON", {

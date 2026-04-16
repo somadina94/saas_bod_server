@@ -28,7 +28,21 @@ export const protect = catchAsync(async (req, _res, next) => {
     return;
   }
 
+  if (!user.companyId) {
+    next(new AppError("Account is not assigned to a workspace", 403));
+    return;
+  }
+
+  if (
+    payload.companyId &&
+    String(user.companyId) !== payload.companyId
+  ) {
+    next(new AppError("Invalid or expired token", 401));
+    return;
+  }
+
   req.authUserId = String(user._id);
+  req.authCompanyId = String(user.companyId);
   req.authRole = user.role;
   req.authPermissions = user.permissions;
   req.authStatus = user.status;

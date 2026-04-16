@@ -38,12 +38,16 @@ export const recalcSaleLines = (lines: ISaleLine[]) => {
 
 export const completeSale = async (params: {
   saleId: string;
+  companyId: string;
   deductInventory: boolean;
   actorId?: string;
   ip?: string;
   userAgent?: string;
 }) => {
-  const sale = await Sale.findById(params.saleId);
+  const sale = await Sale.findOne({
+    _id: params.saleId,
+    companyId: params.companyId,
+  });
   if (!sale) throw new AppError("Sale not found", 404);
   if (sale.status !== "draft") {
     throw new AppError("Sale is not in draft status", 400);
@@ -56,6 +60,7 @@ export const completeSale = async (params: {
     for (const line of sale.items) {
       if (line.productId) {
         await applyStockChange({
+          companyId: sale.companyId,
           productId: line.productId,
           quantityDelta: -line.quantity,
           type: "sale",
@@ -82,6 +87,7 @@ export const completeSale = async (params: {
 };
 
 export const createSale = async (params: {
+  companyId: mongoose.Types.ObjectId;
   customerId?: mongoose.Types.ObjectId;
   walkInCustomerName?: string;
   items: ISaleLine[];
@@ -91,9 +97,13 @@ export const createSale = async (params: {
 }) => {
   const { items, subtotal, taxTotal, total, discountTotal } =
     recalcSaleLines(params.items);
-  const saleNumber = await nextNumberedDocument("saleNumberSettings");
+  const saleNumber = await nextNumberedDocument(
+    params.companyId,
+    "saleNumberSettings",
+  );
 
   const sale = await Sale.create({
+    companyId: params.companyId,
     saleNumber,
     status: "draft",
     customerId: params.customerId,

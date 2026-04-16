@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import catchAsync from "../utils/catchAsync.js";
 import { paginated, sendSuccess } from "../utils/apiResponse.js";
 import {
@@ -16,7 +17,10 @@ export const listSuppliers = catchAsync(async (req, res) => {
     "email",
     "code",
   ]);
-  const filter: Record<string, unknown> = { deletedAt: { $exists: false } };
+  const filter: Record<string, unknown> = {
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
+    deletedAt: { $exists: false },
+  };
   if (req.query.status) filter.status = req.query.status;
   if (search) Object.assign(filter, search);
 
@@ -28,7 +32,10 @@ export const listSuppliers = catchAsync(async (req, res) => {
 });
 
 export const createSupplier = catchAsync(async (req, res) => {
-  const s = await Supplier.create(req.body);
+  const s = await Supplier.create({
+    ...req.body,
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
+  });
   await recordAudit({
     actorId: req.authUserId,
     action: "create",
@@ -41,6 +48,7 @@ export const createSupplier = catchAsync(async (req, res) => {
 export const getSupplier = catchAsync(async (req, res) => {
   const s = await Supplier.findOne({
     _id: req.params.id,
+    companyId: req.authCompanyId,
     deletedAt: { $exists: false },
   });
   if (!s) throw new AppError("Supplier not found", 404);
@@ -50,6 +58,7 @@ export const getSupplier = catchAsync(async (req, res) => {
 export const updateSupplier = catchAsync(async (req, res) => {
   const s = await Supplier.findOne({
     _id: req.params.id,
+    companyId: req.authCompanyId,
     deletedAt: { $exists: false },
   });
   if (!s) throw new AppError("Supplier not found", 404);
@@ -65,7 +74,10 @@ export const updateSupplier = catchAsync(async (req, res) => {
 });
 
 export const archiveSupplier = catchAsync(async (req, res) => {
-  const s = await Supplier.findById(req.params.id);
+  const s = await Supplier.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!s) throw new AppError("Supplier not found", 404);
   s.status = "archived";
   s.deletedAt = new Date();

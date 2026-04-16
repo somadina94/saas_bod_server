@@ -131,12 +131,12 @@ export const notifyStaffInvitation = async (params: {
   lastName: string;
   invitationUrl: string;
   role: string;
+  companyName: string;
 }): Promise<void> => {
   if (!isEmailConfigured()) {
     throw new Error("SMTP is not configured for invitation emails.");
   }
-  const company = await Company.findOne();
-  const name = company?.name ?? env.companyName;
+  const name = params.companyName ?? env.companyName;
   const subj = `You're invited to ${name}`;
   await sendTemplatedMail({
     to: params.email,
@@ -163,14 +163,14 @@ export const notifyInvoiceSent = async (params: {
 }): Promise<void> => {
   if (!isEmailConfigured()) return;
   try {
-    const [company, customer, invoice] = await Promise.all([
-      Company.findOne(),
-      Customer.findById(params.customerId),
+    const [invoice, customer] = await Promise.all([
       Invoice.findById(params.invoiceId),
+      Customer.findById(params.customerId),
     ]);
+    if (!invoice) return;
+    const company = await Company.findById(invoice.companyId);
     if (!company?.notificationSettings.emailEnabled) return;
     if (!customer?.email?.trim()) return;
-    if (!invoice) return;
 
     const subj = `Invoice ${params.invoiceNumber} from ${company.name}`;
     const token = signPublicLinkToken({
@@ -246,10 +246,9 @@ export const notifyPaymentReceived = async (params: {
 }): Promise<void> => {
   if (!isEmailConfigured()) return;
   try {
-    const [company, customer] = await Promise.all([
-      Company.findOne(),
-      Customer.findById(params.customerId),
-    ]);
+    const customer = await Customer.findById(params.customerId);
+    if (!customer?.companyId) return;
+    const company = await Company.findById(customer.companyId);
     if (!company?.notificationSettings.emailEnabled) return;
     if (!company.notificationSettings.sendPaymentConfirmations) return;
     if (!customer?.email?.trim()) return;
@@ -294,14 +293,14 @@ export const notifyQuotationSent = async (params: {
 }): Promise<void> => {
   if (!isEmailConfigured()) return;
   try {
-    const [company, customer, quotation] = await Promise.all([
-      Company.findOne(),
+    const [customer, quotation] = await Promise.all([
       Customer.findById(params.customerId),
       Quotation.findById(params.quotationId),
     ]);
+    if (!quotation) return;
+    const company = await Company.findById(quotation.companyId);
     if (!company?.notificationSettings.emailEnabled) return;
     if (!customer?.email?.trim()) return;
-    if (!quotation) return;
 
     const subj = `Quotation ${params.quotationNumber} from ${company.name}`;
     const quotationPdf = await buildQuotationPdfBuffer({
@@ -372,11 +371,11 @@ export const notifyExpenseStatus = async (params: {
 }): Promise<void> => {
   if (!isEmailConfigured()) return;
   try {
-    const company = await Company.findOne();
-    if (!company?.notificationSettings.emailEnabled) return;
-
     const user = await User.findById(params.submittedByUserId);
-    if (!user?.email?.trim()) return;
+    if (!user?.companyId) return;
+    const company = await Company.findById(user.companyId);
+    if (!company?.notificationSettings.emailEnabled) return;
+    if (!user.email?.trim()) return;
     if (user.notificationPreferences?.email === false) return;
 
     const subj =

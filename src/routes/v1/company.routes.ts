@@ -19,4 +19,11 @@ r.patch(
   ctrl.updateCompany,
 );
 
+r.post(
+  "/payments/test-paystack",
+  protect,
+  requirePermission("canManageCompanySettings"),
+  ctrl.testTenantPaystack,
+);
+
 export default r;

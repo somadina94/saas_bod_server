@@ -1,6 +1,7 @@
 import { Router } from "express";
 import * as ctrl from "../../controllers/userController.js";
 import { protect } from "../../middleware/auth.js";
+import { requireActiveSubscription } from "../../middleware/subscription.js";
 import { requirePermission } from "../../middleware/permission.js";
 import { validate } from "../../middleware/validate.js";
 import { requireFields } from "../../middleware/validate.js";
@@ -26,6 +27,7 @@ const validRole: RequestHandler = (req, _res, next) => {
 
 const r = Router();
 r.use(protect);
+r.use(requireActiveSubscription);
 
 r.get("/", requirePermission("canManageUsers"), ctrl.listUsers);
 r.post(

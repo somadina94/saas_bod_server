@@ -12,7 +12,9 @@ import { notifyExpenseStatus } from "../services/emailNotifications.service.js";
 
 export const listExpenses = catchAsync(async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query as Record<string, unknown>);
-  const filter: Record<string, unknown> = {};
+  const filter: Record<string, unknown> = {
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
+  };
   if (req.query.status) filter.status = req.query.status;
   if (req.query.category) filter.category = req.query.category;
 
@@ -26,6 +28,7 @@ export const listExpenses = catchAsync(async (req, res) => {
 export const createExpense = catchAsync(async (req, res) => {
   const e = await Expense.create({
     ...req.body,
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
     submittedBy: req.authUserId
       ? new mongoose.Types.ObjectId(req.authUserId)
       : undefined,
@@ -40,13 +43,19 @@ export const createExpense = catchAsync(async (req, res) => {
 });
 
 export const getExpense = catchAsync(async (req, res) => {
-  const e = await Expense.findById(req.params.id);
+  const e = await Expense.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!e) throw new AppError("Expense not found", 404);
   sendSuccess(res, e);
 });
 
 export const updateExpense = catchAsync(async (req, res) => {
-  const e = await Expense.findById(req.params.id);
+  const e = await Expense.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!e) throw new AppError("Expense not found", 404);
   Object.assign(e, req.body);
   await e.save();
@@ -60,7 +69,10 @@ export const updateExpense = catchAsync(async (req, res) => {
 });
 
 export const approveExpense = catchAsync(async (req, res) => {
-  const e = await Expense.findById(req.params.id);
+  const e = await Expense.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!e) throw new AppError("Expense not found", 404);
   if (e.submittedBy && req.authUserId && String(e.submittedBy) === req.authUserId) {
     throw new AppError("You cannot approve your own expense", 403);
@@ -91,7 +103,10 @@ export const approveExpense = catchAsync(async (req, res) => {
 });
 
 export const rejectExpense = catchAsync(async (req, res) => {
-  const e = await Expense.findById(req.params.id);
+  const e = await Expense.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!e) throw new AppError("Expense not found", 404);
   if (e.submittedBy && req.authUserId && String(e.submittedBy) === req.authUserId) {
     throw new AppError("You cannot reject your own expense", 403);

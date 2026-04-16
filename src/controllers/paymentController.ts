@@ -10,12 +10,15 @@ import Customer from "../models/Customer.model.js";
 import Invoice from "../models/Invoice.model.js";
 import * as paymentService from "../services/payment.service.js";
 import * as paystackService from "../services/paystack.service.js";
+import * as tenantPaystack from "../services/tenantPaystack.service.js";
 import { env } from "../config/env.js";
 import AppError from "../utils/appError.js";
 
 export const listPayments = catchAsync(async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query as Record<string, unknown>);
-  const filter: Record<string, unknown> = {};
+  const filter: Record<string, unknown> = {
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
+  };
   if (req.query.customerId) {
     filter.customerId = new mongoose.Types.ObjectId(String(req.query.customerId));
   }
@@ -37,6 +40,7 @@ export const recordPayment = catchAsync(async (req, res) => {
   );
 
   const p = await paymentService.recordPayment({
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
     customerId: req.body.customerId
       ? new mongoose.Types.ObjectId(req.body.customerId)
       : undefined,
@@ -56,8 +60,19 @@ export const recordPayment = catchAsync(async (req, res) => {
 });
 
 export const initializePaymentForInvoice = catchAsync(async (req, res) => {
-  const invoice = await Invoice.findById(req.params.id);
+  const invoice = await Invoice.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!invoice) throw new AppError("Invoice not found", 404);
+
+  const secret = await tenantPaystack.getTenantPaystackSecret(req.authCompanyId!);
+  if (!secret) {
+    throw new AppError(
+      "Configure Paystack keys in Settings before generating payment links.",
+      400,
+    );
+  }
 
   const customer = await Customer.findById(invoice.customerId);
   const email =
@@ -66,11 +81,16 @@ export const initializePaymentForInvoice = catchAsync(async (req, res) => {
   const reference = `INV_${invoice._id}_${Date.now()}`;
   const amount = invoice.balance;
 
+  const callbackUrl =
+    (req.body.callbackUrl as string | undefined) ??
+    `${env.frontendUrl.replace(/\/$/, "")}/payments/callback?companyId=${encodeURIComponent(req.authCompanyId!)}`;
+
   const init = await paystackService.initializeTransaction({
+    secretKey: secret,
     email,
     amount,
     reference,
-    callbackUrl: req.body.callbackUrl ?? `${env.frontendUrl}/payments/callback`,
+    callbackUrl,
     metadata: {
       invoiceId: String(invoice._id),
       invoice_id: String(invoice._id),
@@ -90,8 +110,13 @@ export const initializePaymentForInvoice = catchAsync(async (req, res) => {
 });
 
 export const verifyPaystackPayment = catchAsync(async (req, res) => {
+  const secret = await tenantPaystack.getTenantPaystackSecret(req.authCompanyId!);
+  if (!secret) {
+    throw new AppError("Configure Paystack keys in Settings first.", 400);
+  }
   const data = await paystackService.verifyTransaction(
     String(req.params.reference),
+    secret,
   );
   sendSuccess(res, data);
 });

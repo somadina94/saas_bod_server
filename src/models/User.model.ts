@@ -9,6 +9,7 @@ import type {
 
 export interface IUser {
   _id: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   employeeId?: mongoose.Types.ObjectId;
   firstName: string;
   lastName: string;
@@ -96,6 +97,12 @@ const permissionsSchema = new Schema<UserPermissions>(
 
 const userSchema = new Schema<IUser>(
   {
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      index: true,
+    },
     employeeId: { type: Schema.Types.ObjectId },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
@@ -167,6 +174,7 @@ const userSchema = new Schema<IUser>(
   { timestamps: true },
 );
 
+userSchema.index({ companyId: 1, status: 1 });
 userSchema.index({ status: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ deletedAt: 1 });

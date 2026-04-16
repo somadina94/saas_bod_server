@@ -5,6 +5,8 @@ declare global {
   namespace Express {
     interface Request {
       authUserId?: string;
+      /** Active tenant (Mongo ObjectId string). */
+      authCompanyId?: string;
       authRole?: UserRole;
       authPermissions?: UserPermissions;
       authStatus?: UserStatus;

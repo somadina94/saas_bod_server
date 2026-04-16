@@ -7,14 +7,16 @@ import {
 } from "../utils/pagination.js";
 import Quotation from "../models/Quotation.model.js";
 import * as quotationService from "../services/quotation.service.js";
-import { requireCompany } from "../services/company.service.js";
+import { requireCompanyById } from "../services/company.service.js";
 import AppError from "../utils/appError.js";
 import { recordAudit } from "../services/auditLog.service.js";
 import { notifyQuotationSent } from "../services/emailNotifications.service.js";
 
 export const listQuotations = catchAsync(async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query as Record<string, unknown>);
-  const filter: Record<string, unknown> = {};
+  const filter: Record<string, unknown> = {
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
+  };
   if (req.query.customerId) {
     filter.customerId = new mongoose.Types.ObjectId(String(req.query.customerId));
   }
@@ -29,6 +31,7 @@ export const listQuotations = catchAsync(async (req, res) => {
 
 export const createQuotation = catchAsync(async (req, res) => {
   const q = await quotationService.createQuotation({
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
     customerId: new mongoose.Types.ObjectId(req.body.customerId),
     items: req.body.items,
     validUntil: req.body.validUntil ? new Date(req.body.validUntil) : undefined,
@@ -43,13 +46,19 @@ export const createQuotation = catchAsync(async (req, res) => {
 });
 
 export const getQuotation = catchAsync(async (req, res) => {
-  const q = await Quotation.findById(req.params.id);
+  const q = await Quotation.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!q) throw new AppError("Quotation not found", 404);
   sendSuccess(res, q);
 });
 
 export const updateQuotation = catchAsync(async (req, res) => {
-  const q = await Quotation.findById(req.params.id);
+  const q = await Quotation.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!q) throw new AppError("Quotation not found", 404);
   if (q.status === "converted") {
     throw new AppError("Cannot edit converted quotation", 400);
@@ -81,7 +90,7 @@ export const updateQuotation = catchAsync(async (req, res) => {
   });
 
   if (q.status === "sent" && prevStatus !== "sent") {
-    const company = await requireCompany();
+    const company = await requireCompanyById(req.authCompanyId!);
     void notifyQuotationSent({
       customerId: String(q.customerId),
       quotationNumber: q.quotationNumber,
@@ -96,7 +105,7 @@ export const updateQuotation = catchAsync(async (req, res) => {
 });
 
 export const convertToInvoice = catchAsync(async (req, res) => {
-  const company = await requireCompany();
+  const company = await requireCompanyById(req.authCompanyId!);
   const dueDays =
     typeof req.body.dueDays === "number"
       ? req.body.dueDays
@@ -104,6 +113,7 @@ export const convertToInvoice = catchAsync(async (req, res) => {
 
   const inv = await quotationService.convertQuotationToInvoice(
     String(req.params.id),
+    req.authCompanyId!,
     dueDays,
     req.authUserId,
   );

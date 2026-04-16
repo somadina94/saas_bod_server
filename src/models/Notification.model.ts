@@ -2,6 +2,7 @@ import mongoose, { Schema } from "mongoose";
 
 export interface INotification {
   _id: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   title: string;
   body: string;
@@ -15,6 +16,12 @@ export interface INotification {
 
 const notificationSchema = new Schema<INotification>(
   {
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      index: true,
+    },
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     title: { type: String, required: true },
     body: { type: String, required: true },
@@ -26,6 +33,7 @@ const notificationSchema = new Schema<INotification>(
   { timestamps: true },
 );
 
+notificationSchema.index({ companyId: 1, userId: 1, readAt: 1, createdAt: -1 });
 notificationSchema.index({ userId: 1, readAt: 1, createdAt: -1 });
 
 notificationSchema.set("toJSON", {

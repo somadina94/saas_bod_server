@@ -11,6 +11,7 @@ import AppError from "../utils/appError.js";
 import { recordAudit } from "./auditLog.service.js";
 import { notifyInvoiceSent } from "./emailNotifications.service.js";
 import * as paystackService from "./paystack.service.js";
+import * as tenantPaystack from "./tenantPaystack.service.js";
 import { env } from "../config/env.js";
 
 export const recalcInvoiceLines = (lines: IInvoiceLine[]) => {
@@ -90,6 +91,7 @@ export const adjustCustomerBalanceForInvoice = async (params: {
 };
 
 export const createInvoice = async (params: {
+  companyId: mongoose.Types.ObjectId;
   customerId: mongoose.Types.ObjectId;
   quotationId?: mongoose.Types.ObjectId;
   items: IInvoiceLine[];
@@ -101,12 +103,16 @@ export const createInvoice = async (params: {
 }) => {
   const { items, subtotal, taxTotal, total, discountTotal } =
     recalcInvoiceLines(params.items);
-  const invoiceNumber = await nextNumberedDocument("invoiceSettings");
+  const invoiceNumber = await nextNumberedDocument(
+    params.companyId,
+    "invoiceSettings",
+  );
   const issueDate = new Date();
   const due = new Date(issueDate);
   due.setDate(due.getDate() + params.dueDays);
 
   const inv = await Invoice.create({
+    companyId: params.companyId,
     invoiceNumber,
     customerId: params.customerId,
     quotationId: params.quotationId,
@@ -138,6 +144,7 @@ export const createInvoice = async (params: {
 
 export const updateDraftInvoice = async (
   id: string,
+  companyId: string,
   patch: Partial<{
     items: IInvoiceLine[];
     notes: string;
@@ -146,7 +153,10 @@ export const updateDraftInvoice = async (
   }>,
   actorId?: string,
 ) => {
-  const existing = await Invoice.findById(id);
+  const existing = await Invoice.findOne({
+    _id: id,
+    companyId,
+  });
   if (!existing) throw new AppError("Invoice not found", 404);
   if (existing.status !== "draft") {
     throw new AppError("Only draft invoices can be edited", 400);
@@ -194,11 +204,29 @@ export const updateDraftInvoice = async (
   return existing;
 };
 
-export const sendInvoice = async (id: string, actorId?: string) => {
-  const inv = await Invoice.findById(id);
+export const sendInvoice = async (
+  id: string,
+  companyId: string,
+  actorId?: string,
+) => {
+  const inv = await Invoice.findOne({ _id: id, companyId });
   if (!inv) throw new AppError("Invoice not found", 404);
   if (inv.status === "void" || inv.status === "cancelled") {
     throw new AppError("Cannot send this invoice", 400);
+  }
+
+  const balanceDue = syncInvoiceBalances({
+    total: inv.total,
+    paidAmount: inv.paidAmount,
+  });
+  if (balanceDue > 0) {
+    const secret = await tenantPaystack.getTenantPaystackSecret(companyId);
+    if (!secret) {
+      throw new AppError(
+        "Configure Paystack keys in Settings → Payments before sending invoices with an amount due.",
+        400,
+      );
+    }
   }
 
   const prevStatus = inv.status;
@@ -227,15 +255,19 @@ export const sendInvoice = async (id: string, actorId?: string) => {
   // include a "Pay now" action by default.
   if (!inv.paystackPaymentUrl && !inv.paymentLinkUrl && inv.balance > 0) {
     try {
+      const secret = await tenantPaystack.getTenantPaystackSecret(companyId);
+      if (!secret) throw new Error("missing tenant paystack");
       const customer = await Customer.findById(inv.customerId);
       const payerEmail =
         customer?.email?.trim() || env.emailAddress || "customer@example.com";
       const reference = `INV_${inv._id}_${Date.now()}`;
+      const callbackUrl = `${env.frontendUrl.replace(/\/$/, "")}/payments/callback?companyId=${encodeURIComponent(companyId)}`;
       const init = await paystackService.initializeTransaction({
+        secretKey: secret,
         email: payerEmail,
         amount: inv.balance,
         reference,
-        callbackUrl: `${env.frontendUrl}/payments/callback`,
+        callbackUrl,
         metadata: {
           invoiceId: String(inv._id),
           invoice_id: String(inv._id),
@@ -253,7 +285,7 @@ export const sendInvoice = async (id: string, actorId?: string) => {
     }
   }
 
-  const company = await Company.findOne();
+  const company = await Company.findById(companyId);
   const currency = company?.currency ?? "NGN";
   void notifyInvoiceSent({
     customerId: String(inv.customerId),
@@ -268,10 +300,11 @@ export const sendInvoice = async (id: string, actorId?: string) => {
   return inv;
 };
 
-export const markInvoicesOverdue = async () => {
+export const markInvoicesOverdue = async (companyId: string) => {
   const now = new Date();
   await Invoice.updateMany(
     {
+      companyId,
       status: { $in: ["sent", "partially_paid"] },
       dueDate: { $lt: now },
       $expr: { $gt: [{ $subtract: ["$total", "$paidAmount"] }, 0] },

@@ -4,6 +4,7 @@ export type ProductStatus = "active" | "inactive" | "archived";
 
 export interface IProduct {
   _id: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   sku: string;
   name: string;
   description?: string;
@@ -24,7 +25,13 @@ export interface IProduct {
 
 const productSchema = new Schema<IProduct>(
   {
-    sku: { type: String, required: true, unique: true, trim: true },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      index: true,
+    },
+    sku: { type: String, required: true, trim: true },
     name: { type: String, required: true, trim: true },
     description: String,
     unitPrice: { type: Number, required: true, min: 0 },
@@ -46,7 +53,9 @@ const productSchema = new Schema<IProduct>(
   { timestamps: true },
 );
 
-productSchema.index({ name: "text", sku: "text", barcode: "text" });
+productSchema.index({ companyId: 1, sku: 1 }, { unique: true });
+productSchema.index({ companyId: 1, name: "text", sku: "text", barcode: "text" });
+productSchema.index({ companyId: 1, status: 1 });
 productSchema.index({ status: 1 });
 productSchema.index({ stockOnHand: 1 });
 productSchema.index({ deletedAt: 1 });

@@ -5,6 +5,7 @@ export type SupplierStatus = "active" | "inactive" | "archived";
 
 export interface ISupplier {
   _id: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   name: string;
   code?: string;
   email?: string;
@@ -35,6 +36,12 @@ const documentRefSchema = new Schema<DocumentRef>(
 
 const supplierSchema = new Schema<ISupplier>(
   {
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      index: true,
+    },
     name: { type: String, required: true, trim: true },
     code: { type: String, trim: true, sparse: true },
     email: { type: String, lowercase: true, trim: true },
@@ -57,9 +64,17 @@ const supplierSchema = new Schema<ISupplier>(
   { timestamps: true },
 );
 
-supplierSchema.index({ name: "text", code: "text", email: "text" });
+supplierSchema.index({ companyId: 1, name: "text", code: "text", email: "text" });
+supplierSchema.index({ companyId: 1, status: 1 });
 supplierSchema.index({ status: 1 });
 supplierSchema.index({ deletedAt: 1 });
+supplierSchema.index(
+  { companyId: 1, code: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { code: { $exists: true, $type: "string", $ne: "" } },
+  },
+);
 
 supplierSchema.set("toJSON", {
   virtuals: true,

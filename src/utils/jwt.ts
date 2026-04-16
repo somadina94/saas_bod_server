@@ -5,6 +5,8 @@ import type { UserPermissions } from "../types/user.js";
 
 export interface AccessTokenPayload {
   sub: string;
+  /** Present on tokens issued after multi-tenant migration. */
+  companyId?: string;
   role: UserRole;
   permissions: UserPermissions;
   typ: "access";
@@ -16,7 +18,9 @@ export interface RefreshTokenPayload {
   jti: string;
 }
 
-export const signAccessToken = (payload: Omit<AccessTokenPayload, "typ">) => {
+export const signAccessToken = (
+  payload: Omit<AccessTokenPayload, "typ">,
+) => {
   const secret = env.jwtSecret();
   const opts = { expiresIn: env.jwtExpiresIn } as SignOptions;
   return jwt.sign(

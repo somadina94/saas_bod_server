@@ -16,6 +16,7 @@ export interface IQuotationLine {
 
 export interface IQuotation {
   _id: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   quotationNumber: string;
   customerId: mongoose.Types.ObjectId;
   status: QuotationStatus;
@@ -55,7 +56,13 @@ const lineSchema = new Schema<IQuotationLine>(
 
 const quotationSchema = new Schema<IQuotation>(
   {
-    quotationNumber: { type: String, required: true, unique: true },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      index: true,
+    },
+    quotationNumber: { type: String, required: true },
     customerId: {
       type: Schema.Types.ObjectId,
       ref: "Customer",
@@ -81,7 +88,10 @@ const quotationSchema = new Schema<IQuotation>(
   { timestamps: true },
 );
 
+quotationSchema.index({ companyId: 1, quotationNumber: 1 }, { unique: true });
+quotationSchema.index({ companyId: 1, customerId: 1, createdAt: -1 });
 quotationSchema.index({ customerId: 1, createdAt: -1 });
+quotationSchema.index({ companyId: 1, status: 1 });
 quotationSchema.index({ status: 1 });
 
 quotationSchema.set("toJSON", {

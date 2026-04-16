@@ -20,7 +20,10 @@ export const listUsers = catchAsync(async (req, res) => {
     "lastName",
     "email",
   ]);
-  const filter: Record<string, unknown> = { deletedAt: { $exists: false } };
+  const filter: Record<string, unknown> = {
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
+    deletedAt: { $exists: false },
+  };
   if (search) Object.assign(filter, search);
 
   const [rows, total] = await Promise.all([
@@ -36,7 +39,10 @@ export const listUsers = catchAsync(async (req, res) => {
 });
 
 export const getUser = catchAsync(async (req, res) => {
-  const user = await User.findById(req.params.id);
+  const user = await User.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!user || user.deletedAt) throw new AppError("User not found", 404);
   sendSuccess(res, authService.sanitizeUser(user));
 });
@@ -57,7 +63,10 @@ export const createStaff = catchAsync(async (req, res) => {
 });
 
 export const updateUser = catchAsync(async (req, res) => {
-  const user = await User.findById(req.params.id);
+  const user = await User.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!user || user.deletedAt) throw new AppError("User not found", 404);
 
   if (req.body.firstName !== undefined) user.firstName = req.body.firstName;
@@ -82,7 +91,10 @@ export const updateUser = catchAsync(async (req, res) => {
 });
 
 export const assignRole = catchAsync(async (req, res) => {
-  const user = await User.findById(req.params.id);
+  const user = await User.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!user || user.deletedAt) throw new AppError("User not found", 404);
   if (user.isOwner) throw new AppError("Cannot change owner role", 400);
 
@@ -104,7 +116,10 @@ export const assignRole = catchAsync(async (req, res) => {
 });
 
 export const setStatus = catchAsync(async (req, res) => {
-  const user = await User.findById(req.params.id);
+  const user = await User.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!user || user.deletedAt) throw new AppError("User not found", 404);
   if (user.isOwner) throw new AppError("Cannot change owner status", 400);
 
@@ -123,10 +138,14 @@ export const setStatus = catchAsync(async (req, res) => {
 });
 
 export const softDeleteUser = catchAsync(async (req, res) => {
-  const user = await User.findById(req.params.id);
+  const user = await User.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!user || user.deletedAt) throw new AppError("User not found", 404);
   if (user.isOwner) {
     const owners = await User.countDocuments({
+      companyId: req.authCompanyId,
       isOwner: true,
       deletedAt: { $exists: false },
     });

@@ -1,3 +1,10 @@
+import "./config/loadEnv.js";
+
+import mongoose from "mongoose";
+import app from "./app.js";
+import { env } from "./config/env.js";
+import { isEmailConfigured, verifyMailTransport } from "./utils/email.js";
+
 process.on("uncaughtException", (err) => {
   console.error("UNCAUGHT EXCEPTION");
   console.error(err);
@@ -10,17 +17,6 @@ process.on("unhandledRejection", (reason) => {
   console.error(reason);
   process.exit(1);
 });
-
-import dotenv from "dotenv";
-import path from "path";
-dotenv.config({
-  path: path.resolve(process.cwd(), ".env"),
-});
-
-import mongoose from "mongoose";
-import app from "./app.js";
-import { env } from "./config/env.js";
-import { isEmailConfigured, verifyMailTransport } from "./utils/email.js";
 
 const port = env.port;
 

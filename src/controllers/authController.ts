@@ -19,7 +19,7 @@ export const registerBootstrap = catchAsync(async (req, res) => {
       400,
     );
   }
-  const result = await authService.registerBootstrap({
+  const result = await authService.registerCompany({
     firstName: String(b.firstName),
     lastName: String(b.lastName),
     email: b.email,

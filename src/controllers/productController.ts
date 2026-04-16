@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import catchAsync from "../utils/catchAsync.js";
 import { paginated, sendSuccess } from "../utils/apiResponse.js";
 import {
@@ -16,7 +17,10 @@ export const listProducts = catchAsync(async (req, res) => {
     "sku",
     "barcode",
   ]);
-  const filter: Record<string, unknown> = { deletedAt: { $exists: false } };
+  const filter: Record<string, unknown> = {
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
+    deletedAt: { $exists: false },
+  };
   if (req.query.status) filter.status = req.query.status;
   if (req.query.lowStock === "true") {
     filter.$expr = { $lte: ["$stockOnHand", "$reorderLevel"] };
@@ -31,7 +35,10 @@ export const listProducts = catchAsync(async (req, res) => {
 });
 
 export const createProduct = catchAsync(async (req, res) => {
-  const p = await Product.create(req.body);
+  const p = await Product.create({
+    ...req.body,
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
+  });
   await recordAudit({
     actorId: req.authUserId,
     action: "create",
@@ -44,6 +51,7 @@ export const createProduct = catchAsync(async (req, res) => {
 export const getProduct = catchAsync(async (req, res) => {
   const p = await Product.findOne({
     _id: req.params.id,
+    companyId: req.authCompanyId,
     deletedAt: { $exists: false },
   });
   if (!p) throw new AppError("Product not found", 404);
@@ -53,6 +61,7 @@ export const getProduct = catchAsync(async (req, res) => {
 export const updateProduct = catchAsync(async (req, res) => {
   const p = await Product.findOne({
     _id: req.params.id,
+    companyId: req.authCompanyId,
     deletedAt: { $exists: false },
   });
   if (!p) throw new AppError("Product not found", 404);
@@ -68,7 +77,10 @@ export const updateProduct = catchAsync(async (req, res) => {
 });
 
 export const archiveProduct = catchAsync(async (req, res) => {
-  const p = await Product.findById(req.params.id);
+  const p = await Product.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!p) throw new AppError("Product not found", 404);
   p.status = "archived";
   p.deletedAt = new Date();

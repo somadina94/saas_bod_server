@@ -3,6 +3,7 @@ import type { ExpenseStatus } from "../types/domain.js";
 
 export interface IExpense {
   _id: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   title: string;
   category: string;
   amount: number;
@@ -23,6 +24,12 @@ export interface IExpense {
 
 const expenseSchema = new Schema<IExpense>(
   {
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      index: true,
+    },
     title: { type: String, required: true, trim: true },
     category: { type: String, required: true, trim: true },
     amount: { type: Number, required: true, min: 0 },
@@ -45,7 +52,9 @@ const expenseSchema = new Schema<IExpense>(
   { timestamps: true },
 );
 
+expenseSchema.index({ companyId: 1, category: 1, expenseDate: -1 });
 expenseSchema.index({ category: 1, expenseDate: -1 });
+expenseSchema.index({ companyId: 1, status: 1 });
 expenseSchema.index({ status: 1 });
 
 expenseSchema.set("toJSON", {

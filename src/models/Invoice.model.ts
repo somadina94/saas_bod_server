@@ -16,6 +16,7 @@ export interface IInvoiceLine {
 
 export interface IInvoice {
   _id: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   invoiceNumber: string;
   customerId: mongoose.Types.ObjectId;
   quotationId?: mongoose.Types.ObjectId;
@@ -60,7 +61,13 @@ const lineSchema = new Schema<IInvoiceLine>(
 
 const invoiceSchema = new Schema<IInvoice>(
   {
-    invoiceNumber: { type: String, required: true, unique: true },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      index: true,
+    },
+    invoiceNumber: { type: String, required: true },
     customerId: {
       type: Schema.Types.ObjectId,
       ref: "Customer",
@@ -99,7 +106,10 @@ const invoiceSchema = new Schema<IInvoice>(
   { timestamps: true },
 );
 
+invoiceSchema.index({ companyId: 1, invoiceNumber: 1 }, { unique: true });
+invoiceSchema.index({ companyId: 1, customerId: 1, createdAt: -1 });
 invoiceSchema.index({ customerId: 1, createdAt: -1 });
+invoiceSchema.index({ companyId: 1, status: 1, dueDate: 1 });
 invoiceSchema.index({ status: 1, dueDate: 1 });
 
 invoiceSchema.set("toJSON", {

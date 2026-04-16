@@ -37,7 +37,10 @@ export const uploadGeneric = catchAsync(async (req, res) => {
     );
   }
   if (kind === "company_logo") {
-    await Company.updateOne({}, { $set: { logoUrl: result.url } });
+    await Company.updateOne(
+      { _id: req.authCompanyId },
+      { $set: { logoUrl: result.url } },
+    );
   }
 
   const parseObjectId = (raw: unknown): mongoose.Types.ObjectId | null => {
@@ -50,7 +53,10 @@ export const uploadGeneric = catchAsync(async (req, res) => {
   if (kind === "product_image") {
     const productId = parseObjectId(req.body.productId);
     if (!productId) throw new AppError("productId is required for product_image", 400);
-    const product = await Product.findById(productId);
+    const product = await Product.findOne({
+      _id: productId,
+      companyId: req.authCompanyId,
+    });
     if (!product) throw new AppError("Product not found", 404);
     product.imageUrls = Array.from(new Set([...(product.imageUrls ?? []), result.url]));
     await product.save();
@@ -59,7 +65,10 @@ export const uploadGeneric = catchAsync(async (req, res) => {
   if (kind === "expense_receipt") {
     const expenseId = parseObjectId(req.body.expenseId);
     if (!expenseId) throw new AppError("expenseId is required for expense_receipt", 400);
-    const expense = await Expense.findById(expenseId);
+    const expense = await Expense.findOne({
+      _id: expenseId,
+      companyId: req.authCompanyId,
+    });
     if (!expense) throw new AppError("Expense not found", 404);
     expense.attachmentUrl = result.url;
     await expense.save();
@@ -68,7 +77,10 @@ export const uploadGeneric = catchAsync(async (req, res) => {
   if (kind === "customer_doc") {
     const customerId = parseObjectId(req.body.customerId);
     if (!customerId) throw new AppError("customerId is required for customer_doc", 400);
-    const customer = await Customer.findById(customerId);
+    const customer = await Customer.findOne({
+      _id: customerId,
+      companyId: req.authCompanyId,
+    });
     if (!customer) throw new AppError("Customer not found", 404);
     customer.documents = [
       ...(customer.documents ?? []),
@@ -85,7 +97,10 @@ export const uploadGeneric = catchAsync(async (req, res) => {
   if (kind === "supplier_doc") {
     const supplierId = parseObjectId(req.body.supplierId);
     if (!supplierId) throw new AppError("supplierId is required for supplier_doc", 400);
-    const supplier = await Supplier.findById(supplierId);
+    const supplier = await Supplier.findOne({
+      _id: supplierId,
+      companyId: req.authCompanyId,
+    });
     if (!supplier) throw new AppError("Supplier not found", 404);
     supplier.documents = [
       ...(supplier.documents ?? []),

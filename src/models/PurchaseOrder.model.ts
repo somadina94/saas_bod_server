@@ -15,6 +15,7 @@ export interface IPurchaseOrderLine {
 
 export interface IPurchaseOrder {
   _id: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   poNumber: string;
   supplierId: mongoose.Types.ObjectId;
   status: PurchaseOrderStatus;
@@ -57,7 +58,13 @@ const poLineSchema = new Schema<IPurchaseOrderLine>(
 
 const purchaseOrderSchema = new Schema<IPurchaseOrder>(
   {
-    poNumber: { type: String, required: true, unique: true },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      index: true,
+    },
+    poNumber: { type: String, required: true },
     supplierId: {
       type: Schema.Types.ObjectId,
       ref: "Supplier",
@@ -90,7 +97,10 @@ const purchaseOrderSchema = new Schema<IPurchaseOrder>(
   { timestamps: true },
 );
 
+purchaseOrderSchema.index({ companyId: 1, poNumber: 1 }, { unique: true });
+purchaseOrderSchema.index({ companyId: 1, supplierId: 1, createdAt: -1 });
 purchaseOrderSchema.index({ supplierId: 1, createdAt: -1 });
+purchaseOrderSchema.index({ companyId: 1, status: 1 });
 purchaseOrderSchema.index({ status: 1 });
 
 purchaseOrderSchema.set("toJSON", {

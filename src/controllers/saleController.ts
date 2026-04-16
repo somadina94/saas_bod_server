@@ -11,7 +11,9 @@ import AppError from "../utils/appError.js";
 
 export const listSales = catchAsync(async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query as Record<string, unknown>);
-  const filter: Record<string, unknown> = {};
+  const filter: Record<string, unknown> = {
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
+  };
   if (req.query.status) filter.status = req.query.status;
   if (req.query.customerId) {
     filter.customerId = new mongoose.Types.ObjectId(String(req.query.customerId));
@@ -26,6 +28,7 @@ export const listSales = catchAsync(async (req, res) => {
 
 export const createSale = catchAsync(async (req, res) => {
   const sale = await saleService.createSale({
+    companyId: new mongoose.Types.ObjectId(req.authCompanyId!),
     customerId: req.body.customerId
       ? new mongoose.Types.ObjectId(req.body.customerId)
       : undefined,
@@ -41,13 +44,19 @@ export const createSale = catchAsync(async (req, res) => {
 });
 
 export const getSale = catchAsync(async (req, res) => {
-  const sale = await Sale.findById(req.params.id);
+  const sale = await Sale.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!sale) throw new AppError("Sale not found", 404);
   sendSuccess(res, sale);
 });
 
 export const updateSale = catchAsync(async (req, res) => {
-  const sale = await Sale.findById(req.params.id);
+  const sale = await Sale.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!sale) throw new AppError("Sale not found", 404);
   if (sale.status !== "draft") {
     throw new AppError("Only draft sales can be edited", 400);
@@ -76,6 +85,7 @@ export const updateSale = catchAsync(async (req, res) => {
 export const completeSale = catchAsync(async (req, res) => {
   const sale = await saleService.completeSale({
     saleId: String(req.params.id),
+    companyId: req.authCompanyId!,
     deductInventory: req.body.deductInventory !== false,
     actorId: req.authUserId,
     ip: req.ip,
@@ -85,7 +95,10 @@ export const completeSale = catchAsync(async (req, res) => {
 });
 
 export const linkPayment = catchAsync(async (req, res) => {
-  const sale = await Sale.findById(req.params.id);
+  const sale = await Sale.findOne({
+    _id: req.params.id,
+    companyId: req.authCompanyId,
+  });
   if (!sale) throw new AppError("Sale not found", 404);
   sale.paymentId = new mongoose.Types.ObjectId(req.body.paymentId);
   await sale.save();
