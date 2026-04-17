@@ -31,5 +31,7 @@ export const decryptField = (stored: string): string => {
   const data = buf.subarray(IV_LEN + TAG_LEN);
   const decipher = crypto.createDecipheriv(ALG, key, iv);
   decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(data), decipher.final()]).toString("utf8");
+  return Buffer.concat([decipher.update(data), decipher.final()]).toString(
+    "utf8",
+  );
 };

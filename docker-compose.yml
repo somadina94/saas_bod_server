@@ -41,6 +41,7 @@ services:
         SEED_OWNER_EMAIL: ${SEED_OWNER_EMAIL}
         SEED_OWNER_PASSWORD: ${SEED_OWNER_PASSWORD}
         SEED_COMPANY_NAME: ${SEED_COMPANY_NAME}
+        ENCRYPTION_KEY: ${ENCRYPTION_KEY}
     container_name: saasbod-server
     ports:
       - "6620:6620"

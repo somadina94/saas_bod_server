@@ -26,7 +26,10 @@ export const getCompany = catchAsync(async (req, res) => {
 
 export const createCompany = catchAsync(async (_req, res) => {
   void res;
-  throw new AppError("Workspaces are created using the registration flow.", 403);
+  throw new AppError(
+    "Workspaces are created using the registration flow.",
+    403,
+  );
 });
 
 export const updateCompany = catchAsync(async (req, res) => {
@@ -67,7 +70,8 @@ export const updateCompany = catchAsync(async (req, res) => {
   }
 
   if (req.body.paystackPublicKey !== undefined) {
-    company.paystackPublicKey = String(req.body.paystackPublicKey).trim() || undefined;
+    company.paystackPublicKey =
+      String(req.body.paystackPublicKey).trim() || undefined;
   }
 
   if (req.body.paystackSecretKey !== undefined) {
