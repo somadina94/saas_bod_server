@@ -67,6 +67,16 @@ export const env = {
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:3000",
   apiUrl: process.env.API_URL ?? `http://localhost:${process.env.PORT ?? 6610}`,
 
+  /** Max multipart upload size (MB). Match Nginx `client_max_body_size` and available RAM. */
+  maxUploadBytes: (): number => {
+    const raw = process.env.MAX_UPLOAD_MB;
+    const mb =
+      raw !== undefined && raw !== "" ? Number(raw) : 150;
+    if (!Number.isFinite(mb) || mb < 1) return 150 * 1024 * 1024;
+    const capped = Math.min(mb, 500);
+    return Math.floor(capped * 1024 * 1024);
+  },
+
   get emailHost() {
     return process.env.EMAIL_HOST;
   },

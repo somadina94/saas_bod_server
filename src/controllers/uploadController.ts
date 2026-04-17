@@ -1,3 +1,7 @@
+import fs from "fs/promises";
+import fsSync from "fs";
+import path from "path";
+import crypto from "crypto";
 import multer from "multer";
 import mongoose from "mongoose";
 import catchAsync from "../utils/catchAsync.js";
@@ -10,11 +14,24 @@ import Expense from "../models/Expense.model.js";
 import Customer from "../models/Customer.model.js";
 import Supplier from "../models/Supplier.model.js";
 import AppError from "../utils/appError.js";
+import { env } from "../config/env.js";
 
-const storage = multer.memoryStorage();
+const uploadTmpDir = path.join(process.cwd(), "uploads", "tmp");
+if (!fsSync.existsSync(uploadTmpDir)) {
+  fsSync.mkdirSync(uploadTmpDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadTmpDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname) || "";
+    cb(null, `${crypto.randomUUID()}${ext}`);
+  },
+});
+
 export const uploadMiddleware = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: env.maxUploadBytes() },
 });
 
 export const uploadGeneric = catchAsync(async (req, res) => {
@@ -23,12 +40,22 @@ export const uploadGeneric = catchAsync(async (req, res) => {
   const kind = req.body.kind as uploadService.UploadKind;
   if (!kind) throw new AppError("kind is required", 400);
 
-  const result = await uploadService.uploadFile({
-    buffer: file.buffer,
-    originalName: file.originalname,
-    mimeType: file.mimetype,
-    kind,
-  });
+  let buffer: Buffer;
+  try {
+    if (file.path) {
+      buffer = await fs.readFile(file.path);
+    } else if (file.buffer) {
+      buffer = file.buffer;
+    } else {
+      throw new AppError("No file uploaded", 400);
+    }
+
+    const result = await uploadService.uploadFile({
+      buffer,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      kind,
+    });
 
   if (kind === "user_avatar" && req.authUserId) {
     await User.updateOne(
@@ -114,5 +141,10 @@ export const uploadGeneric = catchAsync(async (req, res) => {
     await supplier.save();
   }
 
-  sendSuccess(res, result, 201);
+    sendSuccess(res, result, 201);
+  } finally {
+    if (file.path) {
+      await fs.unlink(file.path).catch(() => {});
+    }
+  }
 });
