@@ -589,6 +589,7 @@ export const createStaffUser = async (params: {
       invitationUrl: invitationLink,
       role: user.role,
       companyName: inviterCompany?.name ?? env.companyName,
+      logoUrl: inviterCompany?.logoUrl,
     });
   } catch {
     // Do not leave a dangling invited account when email dispatch fails.

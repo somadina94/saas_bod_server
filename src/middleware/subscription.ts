@@ -29,7 +29,7 @@ export const requireActiveSubscription = catchAsync(async (req, _res, next) => {
   if (!sub) {
     next(
       new AppError(
-        "An active subscription is required to use BOD. Open Billing to continue.",
+        "An active subscription is required to use JAHBYTE BOD. Open Billing to continue.",
         402,
       ),
     );

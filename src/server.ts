@@ -23,7 +23,7 @@ const port = env.port;
 const DB = env.databaseUrl();
 
 const server = app.listen(port, () => {
-  console.log(`BOD API listening on port ${port}`);
+  console.log(`JAHBYTE BOD API listening on port ${port}`);
 });
 
 const connectDB = async () => {

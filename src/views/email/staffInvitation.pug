@@ -2,10 +2,12 @@ extends _layout
 
 block content
   p Hi #{firstName},
-  p You have been invited to join #[strong= companyName] on the Business Operations Dashboard.
-  p Your role: #[strong= roleLabel].
-  p
-    a(href=invitationUrl style="display: inline-block; padding: 10px 18px; background: #171717; color: #fff; text-decoration: none; border-radius: 6px;") Accept invitation
-  p(style="font-size: 14px; color: #525252;") Or copy this link into your browser:
-  p(style="word-break: break-all; font-size: 13px;")= invitationUrl
-  p(style="font-size: 13px; color: #737373;") This link expires in 7 days.
+  p(style="font-size:16px;line-height:1.65;color:#1c1917;")
+    | #[strong= companyName] has invited you to collaborate on #[strong= platformBrandName]—your team’s hub for customers, inventory, and billing.
+  p Your assigned role: #[strong= roleLabel].
+  p Accept the invitation to create your password and access the workspace.
+  p(style="margin-top:22px;")
+    a(href=invitationUrl style="display:inline-block;padding:12px 24px;background:#1c1917;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;letter-spacing:0.02em;") Accept invitation
+  p(style="font-size:13px;color:#78716c;margin-top:20px;") Prefer to copy the link? Paste this URL into your browser:
+  p(style="word-break:break-all;font-size:12px;color:#57534e;line-height:1.5;font-family:ui-monospace,SFMono-Regular,monospace;background:#f5f5f4;padding:12px;border:1px solid #e7e5e0;")= invitationUrl
+  p(style="font-size:12px;color:#a8a29e;margin-top:16px;") This secure invitation expires in 7 days.

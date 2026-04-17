@@ -38,7 +38,7 @@ export const createPlatformCheckout = async (params: {
 
   const payerEmail =
     company.email?.trim() || env.emailAddress || "billing@example.com";
-  const reference = `BOD_SUB_${params.companyId}_${Date.now()}`;
+  const reference = `JAHBYTE_SUB_${params.companyId}_${Date.now()}`;
 
   return platformInitializeTransaction({
     email: payerEmail,

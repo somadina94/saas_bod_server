@@ -1,9 +1,8 @@
-doctype html
-html
-  head
-    meta(charset="utf-8")
-    title Welcome
-  body
-    p Hi #{firstName},
-    p Welcome to #{subject}.
-    p #{message}
+extends _layout
+
+block content
+  p Hi #{firstName},
+  p Welcome to #[strong= companyName]. Your account is live—sign in to configure your workspace, invite teammates, and start operating with confidence.
+  if message
+    p(style="margin-top:14px;line-height:1.65;") #{message}
+  p(style="font-size:13px;color:#78716c;margin-top:20px;line-height:1.55;") We are glad you chose #{platformBrandName} for your business operations.

@@ -37,7 +37,7 @@ export const env = {
   },
   publicLinkExpiresIn: process.env.PUBLIC_LINK_EXPIRES_IN ?? "14d",
 
-  /** Platform (BOD) Paystack — subscription billing only. */
+  /** Platform (JAHBYTE BOD) Paystack — subscription billing only. */
   paystackSecretKey: () => process.env.PAYSTACK_SECRET_KEY ?? "",
   paystackPublicKey: () => process.env.PAYSTACK_PUBLIC_KEY ?? "",
   paystackWebhookSecret: () => process.env.PAYSTACK_WEBHOOK_SECRET ?? "",
@@ -92,7 +92,7 @@ export const env = {
     return process.env.EMAIL_PASSWORD;
   },
   get companyName() {
-    return process.env.COMPANY_NAME ?? "BOD";
+    return process.env.COMPANY_NAME ?? "JAHBYTE BOD";
   },
 
   get b2ApplicationKeyId() {

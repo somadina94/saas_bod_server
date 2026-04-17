@@ -132,12 +132,13 @@ export const notifyStaffInvitation = async (params: {
   invitationUrl: string;
   role: string;
   companyName: string;
+  logoUrl?: string;
 }): Promise<void> => {
   if (!isEmailConfigured()) {
     throw new Error("SMTP is not configured for invitation emails.");
   }
   const name = params.companyName ?? env.companyName;
-  const subj = `You're invited to ${name}`;
+  const subj = `You're invited to join ${name}`;
   await sendTemplatedMail({
     to: params.email,
     subject: subj,
@@ -148,6 +149,8 @@ export const notifyStaffInvitation = async (params: {
       subject: subj,
       roleLabel: roleLabels[params.role] ?? params.role,
       invitationUrl: params.invitationUrl,
+      logoUrl: params.logoUrl,
+      isPlatformOnly: false,
     },
   });
 };
@@ -221,6 +224,8 @@ export const notifyInvoiceSent = async (params: {
         notes: params.notes,
         viewUrl,
         paymentUrl,
+        logoUrl: company.logoUrl,
+        isPlatformOnly: false,
       },
       attachments: [
         {
@@ -276,6 +281,8 @@ export const notifyPaymentReceived = async (params: {
         receiptNumber: params.receiptNumber,
         // Customer-facing payment emails should not link to internal dashboard.
         viewUrl: undefined,
+        logoUrl: company.logoUrl,
+        isPlatformOnly: false,
       },
     });
   } catch (err) {
@@ -346,6 +353,8 @@ export const notifyQuotationSent = async (params: {
               }),
             )}`
           : undefined,
+        logoUrl: company.logoUrl,
+        isPlatformOnly: false,
       },
       attachments: [
         {
@@ -399,6 +408,8 @@ export const notifyExpenseStatus = async (params: {
         submittedAtLabel: params.expenseDate.toLocaleDateString(undefined, {
           dateStyle: "long",
         }),
+        logoUrl: company.logoUrl,
+        isPlatformOnly: false,
       },
     });
   } catch (err) {

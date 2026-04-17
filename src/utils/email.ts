@@ -6,6 +6,7 @@ import { htmlToText } from "html-to-text";
 import type Mail from "nodemailer/lib/mailer/index.js";
 import type { IUser } from "../models/User.model.js";
 import { env } from "../config/env.js";
+import { PLATFORM_BRAND_NAME } from "../constants/branding.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -71,6 +72,8 @@ export async function sendTemplatedMail(params: {
     path.join(__dirname, "../views/email", `${params.template}.pug`),
     {
       companyName: env.companyName,
+      platformBrandName: PLATFORM_BRAND_NAME,
+      isPlatformOnly: false,
       subject: params.subject,
       ...params.locals,
     },
@@ -78,7 +81,7 @@ export async function sendTemplatedMail(params: {
 
   const transport = createMailTransport();
   await transport.sendMail({
-    from: `${env.companyName} <${env.emailFrom ?? env.emailAddress ?? "noreply@localhost"}>`,
+    from: `${PLATFORM_BRAND_NAME} <${env.emailFrom ?? env.emailAddress ?? "noreply@localhost"}>`,
     to: params.to,
     subject: params.subject,
     html,
@@ -100,7 +103,7 @@ class Email {
     this.message = message;
     this.to = user.email;
     this.firstName = user.firstName;
-    this.from = `${env.companyName} <${env.emailFrom ?? env.emailAddress ?? "noreply@localhost"}>`;
+    this.from = `${PLATFORM_BRAND_NAME} <${env.emailFrom ?? env.emailAddress ?? "noreply@localhost"}>`;
   }
 
   async send(
@@ -115,6 +118,8 @@ class Email {
         firstName: this.firstName,
         subject,
         companyName: env.companyName,
+        platformBrandName: PLATFORM_BRAND_NAME,
+        isPlatformOnly: false,
         ...locals,
       },
     );
@@ -131,7 +136,9 @@ class Email {
   }
 
   async sendWelcome() {
-    await this.send("welcome", `Welcome to ${env.companyName}`);
+    await this.send("welcome", `Welcome to ${env.companyName}`, {
+      isPlatformOnly: true,
+    });
   }
 
   async sendPasswordReset(resetUrl: string) {
@@ -139,6 +146,7 @@ class Email {
     await this.send("passwordReset", `Reset your ${company} password`, {
       resetUrl,
       companyName: company,
+      isPlatformOnly: true,
     });
   }
 }

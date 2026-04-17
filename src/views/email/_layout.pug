@@ -1,12 +1,37 @@
+//- Classic business email shell: optional tenant logo, company name, platform attribution.
 doctype html
 html
   head
     meta(charset="utf-8")
     meta(name="viewport" content="width=device-width, initial-scale=1")
+    meta(name="color-scheme" content="light only")
     title= subject || companyName
-  body(style="font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; line-height: 1.5; color: #1a1a1a; max-width: 560px; margin: 0 auto; padding: 24px;")
-    if companyName
-      p(style="font-weight: 600; font-size: 18px; margin: 0 0 16px;")= companyName
-    block content
-    hr(style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;")
-    p(style="font-size: 12px; color: #737373; margin: 0;") This message was sent by #{companyName || 'your organization'}.
+  body(style="margin:0;background:#eceae6;padding:28px 14px;-webkit-font-smoothing:antialiased;")
+    table(role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;")
+      tr
+        td(align="center")
+          table(role="presentation" width="100%" style="max-width:580px;border-collapse:collapse;background:#ffffff;border:1px solid #d6d3cd;box-shadow:0 1px 2px rgba(0,0,0,0.04);")
+            //- Header
+            tr
+              td(style="padding:28px 32px 20px;border-bottom:1px solid #e7e5e0;background:linear-gradient(180deg,#fafaf8 0%,#ffffff 100%);")
+                if logoUrl
+                  img(src=logoUrl alt=companyName width="180" style="max-width:100%;max-height:56px;height:auto;display:block;border:0;")
+                  p(style="margin:14px 0 0;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#78716c;font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-weight:600;") Verified business correspondence
+                else
+                  p(style="margin:0;font-size:20px;font-weight:700;letter-spacing:-0.02em;color:#1c1917;font-family:Georgia,serif;line-height:1.2;")= companyName
+                  p(style="margin:8px 0 0;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#78716c;font-family:system-ui,-apple-system,Segoe UI,sans-serif;") Business operations
+            //- Body
+            tr
+              td(style="padding:26px 32px 8px;color:#292524;font-size:15px;line-height:1.65;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;")
+                block content
+            //- Footer
+            tr
+              td(style="padding:20px 32px 28px;border-top:1px solid #e7e5e0;background:#fafaf8;")
+                if isPlatformOnly
+                  p(style="margin:0;font-size:12px;line-height:1.55;color:#78716c;font-family:system-ui,-apple-system,Segoe UI,sans-serif;")
+                    | You received this message from #[strong(style="color:#44403c;")= platformBrandName]. If it looks unexpected, contact your administrator.
+                else
+                  p(style="margin:0;font-size:12px;line-height:1.55;color:#78716c;font-family:system-ui,-apple-system,Segoe UI,sans-serif;")
+                    | Sent on behalf of #[strong(style="color:#44403c;")= companyName] via #[strong(style="color:#44403c;")= platformBrandName].
+                  p(style="margin:10px 0 0;font-size:11px;line-height:1.5;color:#a8a29e;font-family:system-ui,-apple-system,Segoe UI,sans-serif;")
+                    | #{platformBrandName} helps teams run CRM, inventory, billing, and payments in one workspace.
