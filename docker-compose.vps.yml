@@ -1,0 +1,28 @@
+# Production stack for EC2 / VPS — used by ./deploy.sh (project: saasbod-server-vps)
+#
+# Normal deploy: image from GHCR (built in GitHub Actions). VPS only pulls.
+# The `build:` block is for DEPLOY_BUILD_LOCAL=1 fallback only.
+# Secrets stay in host .env (never baked into the image).
+
+name: saasbod-server-vps
+
+services:
+  server:
+    image: ${SAASBOD_SERVER_IMAGE:-ghcr.io/somadina94/bod_server:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: saasbod-server
+    ports:
+      - "${PORT:-6620}:${PORT:-6620}"
+    env_file:
+      - .env
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - saasbod-server-vps-network
+
+networks:
+  saasbod-server-vps-network:
+    driver: bridge
