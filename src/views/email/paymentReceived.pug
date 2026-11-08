@@ -2,14 +2,14 @@ extends _layout
 
 block content
   p Hello #{customerName},
-  p Good news—we have recorded your payment of #[strong= formattedAmount] (#{currency}) for invoice(s) #[strong= invoiceNumber].
+  p Good news-we have recorded your payment of #[strong= formattedAmount] (#{currency}) for invoice(s) #[strong= invoiceNumber].
   if paymentNumber
     p Payment reference: #[strong= paymentNumber]
   if reference
     p Bank / transfer reference: #{reference}
   if receiptNumber
     p Receipt number: #{receiptNumber}
-  p(style="margin-top:18px;font-size:15px;color:#166534;font-weight:600;") Thank you—your payment is on file.
+  p(style="margin-top:18px;font-size:15px;color:#166534;font-weight:600;") Thank you-your payment is on file.
   if viewUrl
     p(style="margin-top:22px;")
       a(href=viewUrl style="display:inline-block;padding:12px 24px;background:#1c1917;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;") View payment details

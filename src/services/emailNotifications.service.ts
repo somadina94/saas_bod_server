@@ -35,7 +35,7 @@ const formatDateOnly = (value?: Date): string =>
     ? value.toLocaleDateString(undefined, {
         dateStyle: "long",
       })
-    : "—";
+    : "-";
 
 const buildInvoicePdfBuffer = (params: {
   companyName: string;
@@ -263,7 +263,7 @@ export const notifyPaymentReceived = async (params: {
         ? params.invoiceNumbers[0]!
         : params.invoiceNumbers.join(", ");
 
-    const subj = `Payment received — ${company.name}`;
+    const subj = `Payment received - ${company.name}`;
 
     await sendTemplatedMail({
       to: customer.email,
@@ -389,8 +389,8 @@ export const notifyExpenseStatus = async (params: {
 
     const subj =
       params.status === "approved"
-        ? `Expense approved — ${company.name}`
-        : `Expense update — ${company.name}`;
+        ? `Expense approved - ${company.name}`
+        : `Expense update - ${company.name}`;
 
     await sendTemplatedMail({
       to: user.email,
